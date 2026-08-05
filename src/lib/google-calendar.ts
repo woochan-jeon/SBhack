@@ -29,6 +29,14 @@ function getEnv(name: string) {
   return value;
 }
 
+// Google always includes this in the error message when a refresh token has
+// been revoked or expired (e.g. the OAuth consent screen is still in
+// "Testing" mode, where refresh tokens auto-expire after 7 days).
+function isInvalidGrantError(err: unknown) {
+  const message = typeof err === "object" && err !== null && "message" in err ? String(err.message) : "";
+  return message.includes("invalid_grant");
+}
+
 export function getOAuth2Client() {
   return new google.auth.OAuth2({
     clientId: getEnv("GOOGLE_CLIENT_ID"),
@@ -90,16 +98,25 @@ export async function getAuthorizedClient() {
   });
 
   if (connection.expiryDate.getTime() < Date.now() + 60_000) {
-    const { credentials } = await client.refreshAccessToken();
-    client.setCredentials(credentials);
-    if (credentials.access_token && credentials.expiry_date) {
-      await prisma.calendarConnection.update({
-        where: { id: connection.id },
-        data: {
-          accessToken: credentials.access_token,
-          expiryDate: new Date(credentials.expiry_date),
-        },
-      });
+    try {
+      const { credentials } = await client.refreshAccessToken();
+      client.setCredentials(credentials);
+      if (credentials.access_token && credentials.expiry_date) {
+        await prisma.calendarConnection.update({
+          where: { id: connection.id },
+          data: {
+            accessToken: credentials.access_token,
+            expiryDate: new Date(credentials.expiry_date),
+          },
+        });
+      }
+    } catch (err) {
+      if (!isInvalidGrantError(err)) throw err;
+      // The refresh token was revoked or expired — drop the stale connection
+      // so every channel falls back to its normal "not connected" UI instead
+      // of crashing the page, and the admin can just reconnect.
+      await prisma.calendarConnection.deleteMany({});
+      return null;
     }
   }
 
