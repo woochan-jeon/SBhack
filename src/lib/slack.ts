@@ -79,6 +79,10 @@ async function getSlackToken() {
 
 export type SlackChannel = { id: string; name: string };
 
+// # 할일 only offers these channels when sending a task, in this order —
+// the workspace has many more channels than are relevant to task hand-off.
+const SELECTABLE_CHANNELS = ["전상-제이엠", "팀전", "창업동아리", "공지방"];
+
 export async function listSlackChannels(): Promise<SlackChannel[]> {
   const token = await getSlackToken();
   if (!token) return [];
@@ -111,7 +115,9 @@ export async function listSlackChannels(): Promise<SlackChannel[]> {
     cursor = data.response_metadata?.next_cursor || undefined;
   } while (cursor);
 
-  return channels.sort((a, b) => a.name.localeCompare(b.name));
+  return SELECTABLE_CHANNELS.map((name) => channels.find((c) => c.name === name)).filter(
+    (c): c is SlackChannel => c !== undefined,
+  );
 }
 
 export async function sendSlackMessage(channelId: string, text: string) {
