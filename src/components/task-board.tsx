@@ -105,7 +105,14 @@ function SlackChannelSelect({
   const [channelId, setChannelId] = useState(defaultChannelId ?? "");
   const channelName = channels.find((c) => c.id === channelId)?.name ?? "";
 
-  if (channels.length === 0) return null;
+  if (channels.length === 0) {
+    return (
+      <>
+        <input type="hidden" name="slackChannelId" value={channelId} />
+        <input type="hidden" name="slackChannelName" value={channelName} />
+      </>
+    );
+  }
 
   return (
     <>
