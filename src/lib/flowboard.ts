@@ -204,14 +204,12 @@ export function getTimelineSegments(totalDays = 120): TimelineSegments {
   const end = new Date(originDate);
   end.setDate(end.getDate() + totalDays);
 
-  let weekIndexInMonth = 1;
   let currentMonthKey = "";
 
   while (cursor < end) {
     const monthKey = `${cursor.getFullYear()}-${cursor.getMonth()}`;
     if (monthKey !== currentMonthKey) {
       currentMonthKey = monthKey;
-      weekIndexInMonth = 1;
       const monthStartX = daysBetween(originDate, cursor) * PIXELS_PER_DAY;
       const monthDaysRemaining = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1).getTime() - cursor.getTime();
       const daysInThisMonthChunk = Math.min(
@@ -229,12 +227,15 @@ export function getTimelineSegments(totalDays = 120): TimelineSegments {
     const nextMonthStart = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
     const daysLeftInMonth = daysBetween(cursor, nextMonthStart);
     const weekLength = Math.min(7, daysLeftInMonth, daysBetween(cursor, end));
+    // Calendar week-of-month (1-7=1주, 8-14=2주, ...), not a counter reset at
+    // the window's start — so a window starting mid-month (e.g. 8월 3주) still
+    // labels its first chunk correctly instead of relabeling it "1주".
+    const weekIndexInMonth = Math.floor((cursor.getDate() - 1) / 7) + 1;
     weeks.push({
       startX: weekStartX,
       width: weekLength * PIXELS_PER_DAY,
       label: `${weekIndexInMonth}주`,
     });
-    weekIndexInMonth += 1;
     cursor = new Date(cursor);
     cursor.setDate(cursor.getDate() + weekLength);
   }

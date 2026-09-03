@@ -192,15 +192,20 @@ export default function FlowBoard() {
   function handleProjectMouseDown(e: React.MouseEvent, project: Project) {
     e.stopPropagation();
     if (e.button !== 0) return;
+    const startX = e.clientX;
     const startY = e.clientY;
+    const origX = project.labelX;
     const origY = project.labelY;
     let moved = false;
     function onMove(ev: MouseEvent) {
+      const dx = (ev.clientX - startX) / zoom;
       const dy = (ev.clientY - startY) / zoom;
-      if (Math.abs(dy) > 3) moved = true;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
       updateBoard((b) => ({
         ...b,
-        projects: b.projects.map((p) => (p.id !== project.id ? p : { ...p, labelY: origY + dy })),
+        projects: b.projects.map((p) =>
+          p.id !== project.id ? p : { ...p, labelX: origX + dx, labelY: origY + dy },
+        ),
       }));
     }
     function onUp() {
@@ -541,7 +546,7 @@ export default function FlowBoard() {
                 width: PROJECT_WIDTH,
                 height: PROJECT_HEIGHT,
               }}
-              className="group relative flex cursor-ns-resize select-none items-center gap-2 rounded-lg border border-[#0066cc]/40 bg-[#0066cc]/10 px-3 text-sm font-semibold text-[#0066cc] shadow-sm"
+              className="group relative flex cursor-grab select-none items-center gap-2 rounded-lg border border-[#0066cc]/40 bg-[#0066cc]/10 px-3 text-sm font-semibold text-[#0066cc] shadow-sm"
             >
               <button
                 onMouseDown={(e) => e.stopPropagation()}
