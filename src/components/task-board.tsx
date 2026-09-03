@@ -38,7 +38,7 @@ const STATUS_COLUMNS: { status: Task["status"]; label: string; badgeClass: strin
 ];
 
 const CATEGORY_COLOR_SWATCHES = [
-  "#002D56",
+  "#0066cc",
   "#8D7150",
   "#9D9FA2",
   "#2563eb",
@@ -142,14 +142,14 @@ function AssigneePicker({ defaultSelected }: { defaultSelected?: string[] }) {
         {TEAM_MEMBERS.map((name) => (
           <label
             key={name}
-            className="flex items-center gap-1.5 rounded-full border border-gray-300 px-2 py-1 text-xs text-gray-900 has-[:checked]:border-[#002D56] has-[:checked]:bg-[#002D56]/10 has-[:checked]:text-[#002D56]"
+            className="flex items-center gap-1.5 rounded-full border border-gray-300 px-2 py-1 text-xs text-gray-900 has-[:checked]:border-[#0066cc] has-[:checked]:bg-[#0066cc]/10 has-[:checked]:text-[#0066cc]"
           >
             <input
               type="checkbox"
               name="assigneeNames"
               value={name}
               defaultChecked={defaultSelected?.includes(name)}
-              className="h-3 w-3 accent-[#002D56]"
+              className="h-3 w-3 accent-[#0066cc]"
             />
             {name}
           </label>
@@ -160,7 +160,7 @@ function AssigneePicker({ defaultSelected }: { defaultSelected?: string[] }) {
         value={extra}
         onChange={(e) => setExtra(e.target.value)}
         placeholder="그 외 담당자 이름 (직접 입력)"
-        className="w-56 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+        className="w-56 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
       />
     </div>
   );
@@ -191,7 +191,7 @@ export default function TaskBoard({
         <p className="text-sm text-gray-900">총 {visibleTasks.length}개의 할일</p>
         <button
           onClick={() => setShowNewForm((v) => !v)}
-          className="rounded-md bg-[#002D56] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#00203C]"
+          className="rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3]"
         >
           {showNewForm ? "닫기" : "+ 새 할일"}
         </button>
@@ -202,7 +202,7 @@ export default function TaskBoard({
           onClick={() => setActiveCategoryId(null)}
           className={`rounded-full border px-3 py-1 text-xs font-medium ${
             activeCategoryId === null
-              ? "border-[#002D56] bg-[#002D56] text-white"
+              ? "border-[#0066cc] bg-[#0066cc] text-white"
               : "border-gray-200 text-gray-900 hover:bg-gray-50"
           }`}
         >
@@ -306,7 +306,7 @@ function NewCategoryForm({ onDone }: { onDone: () => void }) {
         required
         autoFocus
         maxLength={30}
-        className="rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+        className="rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
       />
       <div className="flex items-center gap-1.5">
         {CATEGORY_COLOR_SWATCHES.map((swatch) => (
@@ -324,7 +324,7 @@ function NewCategoryForm({ onDone }: { onDone: () => void }) {
       <button
         type="submit"
         disabled={pending}
-        className="ml-auto rounded-md bg-[#002D56] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#00203C] disabled:opacity-60"
+        className="ml-auto rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3] disabled:opacity-60"
       >
         {pending ? "추가 중..." : "추가"}
       </button>
@@ -357,13 +357,13 @@ function NewTaskForm({
         placeholder="할일 제목"
         required
         autoFocus
-        className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+        className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
       />
       <textarea
         name="description"
         placeholder="설명 (선택)"
         rows={2}
-        className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+        className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
       />
       <div>
         <p className="mb-1 text-xs text-gray-500">담당자 (여러 명 선택 가능)</p>
@@ -372,16 +372,16 @@ function NewTaskForm({
       <div className="flex flex-wrap gap-3">
         <CategorySelect
           categories={categories}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
         />
         <input
           type="date"
           name="dueDate"
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
         />
         <SlackChannelSelect
           channels={slackChannels}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
         />
       </div>
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
@@ -396,7 +396,7 @@ function NewTaskForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-[#002D56] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#00203C] disabled:opacity-60"
+          className="rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3] disabled:opacity-60"
         >
           {pending ? "추가 중..." : "추가"}
         </button>
@@ -487,9 +487,9 @@ function TaskCard({
             task.assignees.map((name) => (
               <span
                 key={name}
-                className="flex items-center gap-1 rounded-full bg-[#002D56]/10 px-2 py-0.5 text-xs text-[#002D56]"
+                className="flex items-center gap-1 rounded-full bg-[#0066cc]/10 px-2 py-0.5 text-xs text-[#0066cc]"
               >
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#002D56] text-[9px] font-semibold text-white">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#0066cc] text-[9px] font-semibold text-white">
                   {name.slice(0, 1).toUpperCase()}
                 </span>
                 {name}
@@ -538,20 +538,20 @@ function EditTaskForm({
   return (
     <form
       action={formAction}
-      className="flex flex-col gap-2 rounded-lg border border-[#002D56] bg-gray-50 p-3"
+      className="flex flex-col gap-2 rounded-lg border border-[#0066cc] bg-gray-50 p-3"
     >
       <input type="hidden" name="taskId" value={task.id} />
       <input
         name="title"
         defaultValue={task.title}
         required
-        className="rounded-md border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+        className="rounded-md border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
       />
       <textarea
         name="description"
         defaultValue={task.description ?? ""}
         rows={2}
-        className="rounded-md border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+        className="rounded-md border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
       />
       <div>
         <p className="mb-1 text-xs text-gray-500">담당자 (여러 명 선택 가능)</p>
@@ -587,7 +587,7 @@ function EditTaskForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-[#002D56] px-2 py-1 text-xs font-medium text-white hover:bg-[#00203C] disabled:opacity-60"
+          className="rounded-full bg-[#0066cc] px-2 py-1 text-xs font-medium text-white hover:bg-[#0071e3] disabled:opacity-60"
         >
           {pending ? "저장 중..." : "저장"}
         </button>

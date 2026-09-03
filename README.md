@@ -1,6 +1,6 @@
 # WONDER
 
-Slack 스타일 UI의 팀 업무관리 워크스페이스. 현재 여섯 개의 채널을 제공합니다.
+Slack 스타일 UI의 팀 업무관리 워크스페이스. 현재 일곱 개의 채널을 제공합니다.
 
 - **# 할일** — 팀 할일을 만들고, 담당자/마감일을 지정하고, 상태(할 일 / 진행 중 / 완료)를 관리
 - **# 캘린더** — 관리자가 연결한 팀 공용 구글 캘린더의 일정을 볼 수 있는 채널
@@ -8,10 +8,11 @@ Slack 스타일 UI의 팀 업무관리 워크스페이스. 현재 여섯 개의 
 - **# 회의록** — 드라이브의 "00. 회의록" 문서를 그대로 임베드해서 보여주는 채널
 - **# 회의 아카이브** — Meet Recordings의 Gemini 회의록을 안건·결정사항으로 자동 요약하는 채널
 - **# 회계장부** — 프로젝트별 구글 시트 회계장부를 조회하고, 새 수입/지출 항목을 그 시트에 바로 기록
+- **# 플로우보드** — 프로젝트/작업을 확대·축소·드래그 가능한 무한 캔버스 위에 타임라인으로 배치해 보는 개인용 채널. 다른 채널과 달리 서버(Postgres)에 저장하지 않고 **브라우저 로컬 저장소(localStorage)에만** 저장되므로, 기기·브라우저마다 데이터가 다르고 다른 사람과 공유되지 않습니다.
 
 기술 스택: Next.js 16 (App Router) · TypeScript · Tailwind CSS · Prisma 7 + Postgres (Vercel Postgres/Neon) · Google Calendar/Drive/Sheets API
 
-계정/로그인이 없는 완전 공개 워크스페이스입니다 — 링크만 있으면 누구나 모든 채널에 접속할 수 있습니다.
+계정/로그인이 없는 완전 공개 워크스페이스입니다 — 링크만 있으면 누구나 모든 채널에 접속할 수 있습니다 (단, # 플로우보드는 위에서 설명한 대로 로컬 저장이라 예외입니다).
 
 ## 1. 처음 실행하기
 
@@ -114,11 +115,12 @@ src/
       minutes/        # 회의록 채널
       archive/        # 회의 아카이브 채널
       ledger/         # 회계장부 채널
+      flowboard/      # 플로우보드 채널 (localStorage 전용, DB 미사용)
     api/calendar/     구글 OAuth 콜백 라우트
     api/slack/        슬랙 OAuth 콜백 라우트
-  components/          Sidebar, 채널 헤더, 할일 보드, 캘린더 아젠다, 회계장부 보드 등 UI
-  lib/                 Prisma 클라이언트, 구글 캘린더/드라이브/시트 연동, 슬랙 연동, 회의 요약 로직
-prisma/schema.prisma   DB 스키마 (Task, Category, CalendarConnection, SlackConnection, MeetingSummary 등)
+  components/          Sidebar, 채널 헤더, 할일 보드, 캘린더 아젠다, 회계장부 보드, 플로우보드 캔버스 등 UI
+  lib/                 Prisma 클라이언트, 구글 캘린더/드라이브/시트 연동, 슬랙 연동, 회의 요약 로직, 플로우보드 로컬 저장 로직
+prisma/schema.prisma   DB 스키마 (Task, Category, CalendarConnection, SlackConnection, MeetingSummary 등) — 플로우보드 데이터는 여기 포함되지 않음(로컬 저장)
 ```
 
 ## 9. 자주 쓰는 명령어

@@ -62,7 +62,7 @@ export function CalendarPicker({
                   value={c.id}
                   checked={selected.has(c.id)}
                   onChange={() => toggle(c.id)}
-                  className="h-3.5 w-3.5 accent-[#002D56]"
+                  className="h-3.5 w-3.5 accent-[#0066cc]"
                 />
                 {c.name}
                 {c.primary ? " (기본)" : ""}
@@ -82,7 +82,7 @@ export function NewEventButton() {
     <div>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="rounded-md bg-[#002D56] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#00203C]"
+        className="rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3]"
       >
         {open ? "닫기" : "+ 일정 추가"}
       </button>
@@ -111,13 +111,13 @@ function NewEventForm({ onDone }: { onDone: () => void }) {
         placeholder="일정 제목"
         required
         autoFocus
-        className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+        className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
       />
       <textarea
         name="description"
         placeholder="설명 (선택)"
         rows={2}
-        className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+        className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
       />
       <div className="flex flex-wrap items-center gap-3">
         <input
@@ -125,7 +125,7 @@ function NewEventForm({ onDone }: { onDone: () => void }) {
           name="date"
           defaultValue={today}
           required
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
         />
         <label className="flex items-center gap-1.5 text-sm text-gray-900">
           <input
@@ -133,7 +133,7 @@ function NewEventForm({ onDone }: { onDone: () => void }) {
             name="allDay"
             checked={allDay}
             onChange={(e) => setAllDay(e.target.checked)}
-            className="h-3.5 w-3.5 accent-[#002D56]"
+            className="h-3.5 w-3.5 accent-[#0066cc]"
           />
           하루 종일
         </label>
@@ -143,14 +143,14 @@ function NewEventForm({ onDone }: { onDone: () => void }) {
               type="time"
               name="startTime"
               required={!allDay}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
             />
             <span className="text-sm text-gray-500">~</span>
             <input
               type="time"
               name="endTime"
               required={!allDay}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
             />
           </>
         )}
@@ -167,7 +167,7 @@ function NewEventForm({ onDone }: { onDone: () => void }) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-[#002D56] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#00203C] disabled:opacity-60"
+          className="rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3] disabled:opacity-60"
         >
           {pending ? "추가 중..." : "추가"}
         </button>

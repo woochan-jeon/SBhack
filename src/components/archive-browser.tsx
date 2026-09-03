@@ -67,7 +67,7 @@ export default function ArchiveBrowser({
                   href={`/archive?meeting=${m.id}`}
                   onClick={() => setOpen(false)}
                   className={`block px-3 py-2 text-sm ${
-                    active ? "bg-[#002D56]/10 font-medium text-[#002D56]" : "text-gray-900 hover:bg-gray-50"
+                    active ? "bg-[#0066cc]/10 font-medium text-[#0066cc]" : "text-gray-900 hover:bg-gray-50"
                   }`}
                 >
                   <p className="text-xs text-gray-400">{formatDate(m.meetingDate)}</p>
@@ -95,11 +95,11 @@ export default function ArchiveBrowser({
               {selected.items.map((item, i) => (
                 <li key={i} className="rounded-lg border border-gray-200 p-3">
                   <p className="flex gap-2 text-sm font-medium text-gray-900">
-                    <span className="shrink-0 text-[#002D56]">📋</span>
+                    <span className="shrink-0 text-[#0066cc]">📋</span>
                     <span>{item.agenda}</span>
                   </p>
                   <p className="mt-1.5 flex gap-2 pl-6 text-sm text-gray-700">
-                    <span className="shrink-0 text-[#8D7150]">➜</span>
+                    <span className="shrink-0 text-gray-400">➜</span>
                     {item.decision ? (
                       <span>{item.decision}</span>
                     ) : (
@@ -115,7 +115,7 @@ export default function ArchiveBrowser({
                 href={selected.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="self-start text-xs text-[#002D56] hover:underline"
+                className="self-start text-xs text-[#0066cc] hover:underline"
               >
                 원본 회의록 문서 보기 →
               </a>

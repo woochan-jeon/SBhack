@@ -57,7 +57,7 @@ export default function LedgerBoard({
             href={`/ledger?project=${p.id}`}
             className={`rounded-full border px-3 py-1 text-xs font-medium ${
               p.id === currentProjectId
-                ? "border-[#002D56] bg-[#002D56] text-white"
+                ? "border-[#0066cc] bg-[#0066cc] text-white"
                 : "border-gray-200 text-gray-900 hover:bg-gray-50"
             }`}
           >
@@ -81,7 +81,7 @@ export default function LedgerBoard({
           </a>
           <button
             onClick={openNewForm}
-            className="rounded-md bg-[#002D56] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#00203C]"
+            className="rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3]"
           >
             {showNewForm ? "닫기" : "+ 새 항목"}
           </button>
@@ -137,7 +137,7 @@ export default function LedgerBoard({
                 <td className="whitespace-nowrap px-3 py-2 text-right">
                   <button
                     onClick={() => openEditForm(entry.row)}
-                    className="text-xs text-gray-500 hover:text-[#002D56] hover:underline"
+                    className="text-xs text-gray-500 hover:text-[#0066cc] hover:underline"
                   >
                     {editingRow === entry.row ? "닫기" : "수정"}
                   </button>
@@ -189,21 +189,21 @@ function EntryForm({
           name="date"
           defaultValue={entry?.date || todayDateValue()}
           required
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
         />
         <input
           type="time"
           name="time"
           defaultValue={entry?.time || nowTimeValue()}
           required
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
         />
         <input
           name="name"
           placeholder="이름"
           defaultValue={entry?.name}
           required
-          className="w-28 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+          className="w-28 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
         />
         <input
           name="method"
@@ -211,7 +211,7 @@ function EntryForm({
           placeholder="결제수단"
           defaultValue={entry?.method}
           required
-          className="w-32 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+          className="w-32 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
         />
         <datalist id="ledger-payment-methods">
           {PAYMENT_METHODS.map((m) => (
@@ -226,7 +226,7 @@ function EntryForm({
         defaultValue={entry?.content}
         required
         autoFocus
-        className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+        className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
       />
 
       <div className="flex flex-wrap items-center gap-3">
@@ -270,7 +270,7 @@ function EntryForm({
           min={1}
           step={1}
           required
-          className="w-32 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+          className="w-32 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
         />
       </div>
 
@@ -279,13 +279,13 @@ function EntryForm({
           name="note"
           placeholder="비고 (선택)"
           defaultValue={entry?.note}
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
         />
         <input
           name="receipt"
           placeholder="영수증 (선택, 예: 항공권 영수증.pdf)"
           defaultValue={entry?.receipt}
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
         />
       </div>
 
@@ -307,7 +307,7 @@ function EntryForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-[#002D56] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#00203C] disabled:opacity-60"
+          className="rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3] disabled:opacity-60"
         >
           {pending ? (isEdit ? "수정 중..." : "기록 중...") : isEdit ? "수정" : "기록"}
         </button>

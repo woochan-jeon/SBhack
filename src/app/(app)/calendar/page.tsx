@@ -58,7 +58,7 @@ export default async function CalendarPage({
           ) : oauthConfigured ? (
             <a
               href="/api/calendar/oauth/start"
-              className="rounded-md bg-[#002D56] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#00203C]"
+              className="rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3]"
             >
               구글 캘린더 연결
             </a>
@@ -76,7 +76,7 @@ export default async function CalendarPage({
             {oauthConfigured ? (
               <a
                 href="/api/calendar/oauth/start"
-                className="mt-2 rounded-md bg-[#002D56] px-4 py-2 text-sm font-medium text-white hover:bg-[#00203C]"
+                className="mt-2 rounded-full bg-[#0066cc] px-4 py-2 text-sm font-medium text-white hover:bg-[#0071e3]"
               >
                 구글 캘린더 연결하기
               </a>

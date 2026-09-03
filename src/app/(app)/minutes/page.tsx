@@ -50,7 +50,7 @@ export default async function MinutesPage() {
             {oauthConfigured && (
               <a
                 href="/api/calendar/oauth/start"
-                className="mt-2 rounded-md bg-[#002D56] px-4 py-2 text-sm font-medium text-white hover:bg-[#00203C]"
+                className="mt-2 rounded-full bg-[#0066cc] px-4 py-2 text-sm font-medium text-white hover:bg-[#0071e3]"
               >
                 구글 계정 연결하기
               </a>
@@ -62,7 +62,7 @@ export default async function MinutesPage() {
             <p className="text-xs text-gray-400">드라이브 채널에서 계정을 다시 연결해 주세요.</p>
             <a
               href="/api/calendar/oauth/start"
-              className="mt-2 rounded-md bg-[#002D56] px-4 py-2 text-sm font-medium text-white hover:bg-[#00203C]"
+              className="mt-2 rounded-full bg-[#0066cc] px-4 py-2 text-sm font-medium text-white hover:bg-[#0071e3]"
             >
               구글 계정 다시 연결하기
             </a>

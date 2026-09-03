@@ -168,7 +168,7 @@ export default function CalendarMonthGrid({
                     <span
                       className={`flex h-5 w-5 items-center justify-center rounded-full text-xs ${
                         isToday
-                          ? "bg-[#002D56] font-semibold text-white"
+                          ? "bg-[#0066cc] font-semibold text-white"
                           : inMonth
                             ? "text-gray-900"
                             : "text-gray-400"
@@ -197,8 +197,8 @@ export default function CalendarMonthGrid({
                       gridRow: seg.lane + 2,
                       backgroundColor: bg ? `${bg}26` : undefined,
                     }}
-                    className={`mx-0.5 mt-0.5 truncate rounded px-1 py-0.5 text-[11px] text-[#002D56] hover:opacity-80 ${
-                      bg ? "" : "bg-[#002D56]/10"
+                    className={`mx-0.5 mt-0.5 truncate rounded px-1 py-0.5 text-[11px] text-[#0066cc] hover:opacity-80 ${
+                      bg ? "" : "bg-[#0066cc]/10"
                     }`}
                   >
                     {time && <span className="mr-1 font-medium">{time}</span>}

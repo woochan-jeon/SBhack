@@ -44,7 +44,7 @@ export default function DriveBrowser({
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-gray-900">루트로 사용할 폴더를 검색해 선택해 주세요</p>
-          <Link href="/drive" className="text-sm text-[#002D56] hover:underline">
+          <Link href="/drive" className="text-sm text-[#0066cc] hover:underline">
             취소
           </Link>
         </div>
@@ -56,11 +56,11 @@ export default function DriveBrowser({
             defaultValue={searchQuery}
             placeholder="폴더 이름으로 검색"
             autoFocus
-            className="w-72 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+            className="w-72 rounded-full border border-gray-300 px-4 py-1.5 text-sm text-gray-900 outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
           />
           <button
             type="submit"
-            className="rounded-md bg-[#002D56] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#00203C]"
+            className="rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3]"
           >
             검색
           </button>
@@ -84,7 +84,7 @@ export default function DriveBrowser({
                     <form action={setDriveRootFolderAction.bind(null, item.id, item.name)}>
                       <button
                         type="submit"
-                        className="rounded-md border border-[#002D56] px-2.5 py-1 text-xs font-medium text-[#002D56] hover:bg-[#002D56]/10"
+                        className="rounded-full border border-[#0066cc] px-2.5 py-1 text-xs font-medium text-[#0066cc] hover:bg-[#0066cc]/10"
                       >
                         이 폴더로 설정
                       </button>
@@ -111,7 +111,7 @@ export default function DriveBrowser({
             <Link
               href="/drive"
               className={`rounded px-1.5 py-0.5 hover:bg-gray-100 ${
-                breadcrumb.length === 0 ? "font-semibold text-gray-900" : "text-[#002D56]"
+                breadcrumb.length === 0 ? "font-semibold text-gray-900" : "text-[#0066cc]"
               }`}
             >
               {homeLabel}
@@ -122,7 +122,7 @@ export default function DriveBrowser({
                 <Link
                   href={folderHref(b.id)}
                   className={`rounded px-1.5 py-0.5 hover:bg-gray-100 ${
-                    i === breadcrumb.length - 1 ? "font-semibold text-gray-900" : "text-[#002D56]"
+                    i === breadcrumb.length - 1 ? "font-semibold text-gray-900" : "text-[#0066cc]"
                   }`}
                 >
                   {b.name}
@@ -134,7 +134,7 @@ export default function DriveBrowser({
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs">
-            <Link href="/drive?pickRoot=1" className="text-[#002D56] hover:underline">
+            <Link href="/drive?pickRoot=1" className="text-[#0066cc] hover:underline">
               루트 폴더 변경
             </Link>
             {rootFolder && (
@@ -151,7 +151,7 @@ export default function DriveBrowser({
               name="q"
               defaultValue={searchQuery}
               placeholder="드라이브에서 검색"
-              className="w-56 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 outline-none focus:border-[#002D56] focus:ring-1 focus:ring-[#002D56]"
+              className="w-56 rounded-full border border-gray-300 px-4 py-1.5 text-sm text-gray-900 outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]"
             />
           </form>
         </div>
@@ -178,7 +178,7 @@ export default function DriveBrowser({
                     {item.isFolder ? (
                       <Link
                         href={folderHref(item.id)}
-                        className="flex items-center gap-2 text-gray-900 hover:text-[#002D56]"
+                        className="flex items-center gap-2 text-gray-900 hover:text-[#0066cc]"
                       >
                         <span aria-hidden>📁</span>
                         <span className="truncate">{item.name}</span>
@@ -188,7 +188,7 @@ export default function DriveBrowser({
                         href={item.webViewLink ?? undefined}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-gray-900 hover:text-[#002D56]"
+                        className="flex items-center gap-2 text-gray-900 hover:text-[#0066cc]"
                       >
                         {item.iconLink ? (
                           // eslint-disable-next-line @next/next/no-img-element

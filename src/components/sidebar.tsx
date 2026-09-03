@@ -11,6 +11,7 @@ const CHANNELS = [
   { href: "/minutes", label: "회의록", icon: "📝" },
   { href: "/archive", label: "회의 아카이브", icon: "🗄️" },
   { href: "/ledger", label: "회계장부", icon: "💰" },
+  { href: "/flowboard", label: "플로우보드", icon: "🗺️" },
 ];
 
 export default function Sidebar() {
@@ -19,7 +20,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <div className="flex items-center justify-between bg-[#002D56] px-3 py-3 text-white md:hidden">
+      <div className="flex items-center justify-between bg-black px-3 py-3 text-white md:hidden">
         <button
           onClick={() => setOpen(true)}
           aria-label="채널 목록 열기"
@@ -40,7 +41,7 @@ export default function Sidebar() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col bg-[#002D56] text-white transition-transform duration-200 ease-out md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col bg-black text-white transition-transform duration-200 ease-out md:static md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -77,7 +78,7 @@ export default function Sidebar() {
                     onClick={() => setOpen(false)}
                     className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
                       active
-                        ? "bg-white/20 font-medium text-white"
+                        ? "bg-[#0066cc]/20 font-medium text-white"
                         : "text-white/70 hover:bg-white/10"
                     }`}
                   >

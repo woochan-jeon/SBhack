@@ -57,7 +57,7 @@ export default async function TasksPage({
           ) : slackConfigured ? (
             <a
               href="/api/slack/oauth/start"
-              className="rounded-md bg-[#002D56] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#00203C]"
+              className="rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3]"
             >
               슬랙 연결
             </a>
