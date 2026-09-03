@@ -27,8 +27,8 @@ import {
 
 const PROJECT_WIDTH = 150;
 const PROJECT_HEIGHT = 48;
-const TASK_WIDTH = 210;
-const TASK_HEIGHT = 70;
+const TASK_WIDTH = 168;
+const TASK_HEIGHT = 56;
 
 function clampZoom(z: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
