@@ -191,9 +191,11 @@ export default function TaskBoard({
         <p className="text-sm text-gray-900">총 {visibleTasks.length}개의 할일</p>
         <button
           onClick={() => setShowNewForm((v) => !v)}
-          className="rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3]"
+          title={showNewForm ? "닫기" : "새 할일 추가"}
+          aria-label={showNewForm ? "닫기" : "새 할일 추가"}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0066cc] text-base font-medium text-white hover:bg-[#0071e3]"
         >
-          {showNewForm ? "닫기" : "+ 새 할일"}
+          {showNewForm ? "×" : "+"}
         </button>
       </div>
 

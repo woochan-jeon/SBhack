@@ -1,16 +1,15 @@
 # WONDER
 
-Slack 스타일 UI의 팀 업무관리 워크스페이스. 현재 일곱 개의 채널을 제공합니다.
+Slack 스타일 UI의 팀 업무관리 워크스페이스. 현재 여섯 개의 채널을 제공합니다.
 
 - **# 할일** — 팀 할일을 만들고, 담당자/마감일을 지정하고, 상태(할 일 / 진행 중 / 완료)를 관리
 - **# 캘린더** — 관리자가 연결한 팀 공용 구글 캘린더의 일정을 볼 수 있는 채널
 - **# 드라이브** — 연결된 구글 계정의 드라이브를 폴더째로 탐색
 - **# 회의록** — 드라이브의 "00. 회의록" 문서를 그대로 임베드해서 보여주는 채널
 - **# 회의 아카이브** — Meet Recordings의 Gemini 회의록을 안건·결정사항으로 자동 요약하는 채널
-- **# 회계장부** — 프로젝트별 구글 시트 회계장부를 조회하고, 새 수입/지출 항목을 그 시트에 바로 기록
 - **# 플로우보드** — 프로젝트/작업을 확대·축소·드래그 가능한 무한 캔버스 위에 타임라인으로 배치해 보는 개인용 채널. 다른 채널과 달리 서버(Postgres)에 저장하지 않고 **브라우저 로컬 저장소(localStorage)에만** 저장되므로, 기기·브라우저마다 데이터가 다르고 다른 사람과 공유되지 않습니다.
 
-기술 스택: Next.js 16 (App Router) · TypeScript · Tailwind CSS · Prisma 7 + Postgres (Vercel Postgres/Neon) · Google Calendar/Drive/Sheets API
+기술 스택: Next.js 16 (App Router) · TypeScript · Tailwind CSS · Prisma 7 + Postgres (Vercel Postgres/Neon) · Google Calendar/Drive API
 
 계정/로그인이 없는 완전 공개 워크스페이스입니다 — 링크만 있으면 누구나 모든 채널에 접속할 수 있습니다 (단, # 플로우보드는 위에서 설명한 대로 로컬 저장이라 예외입니다).
 
@@ -72,16 +71,7 @@ cp .env.example .env
 - 요약 1건당 Claude API 비용이 소량 발생합니다.
 - 요약 로직은 `src/lib/meeting-summarizer.ts`(Claude 호출), `src/lib/meeting-archive-sync.ts`(신규 문서 감지·저장)에 있습니다.
 
-## 5. 회계장부 연동
-
-**# 회계장부** 채널은 새 계정을 만들지 않고, 이미 쓰고 있는 구글 시트 회계장부에 직접 읽고 씁니다 — 캘린더/드라이브와 같은 구글 계정 연결을 재사용합니다.
-
-- 어떤 프로젝트가 어떤 시트에 연결되는지는 `src/lib/google-sheets.ts`의 `LEDGER_PROJECTS` 상수에 시트 ID로 하드코딩되어 있습니다. 프로젝트를 추가/변경하려면 이 상수를 수정하세요. 프로젝트마다 시트 하나에만 읽고 쓰므로, 같은 장부를 공개용/내부용처럼 파일 두 개로 나눠 쓰는 경우 각각을 별도 프로젝트(탭)로 등록합니다 — 새 항목은 입력한 탭의 시트에만 기록되고 다른 탭에는 자동으로 반영되지 않습니다.
-- 대상 시트는 `날짜 | 시간 | 내용 | 이름 | 결제수단 | 수입 | 지출 | 잔액 | 비고 | 영수증` 열 구성과 "회계장부"라는 이름의 탭을 가지고 있어야 합니다. 잔액은 수식이 아니라 이전 잔액에 수입/지출을 더한 값을 앱이 직접 계산해 기록합니다.
-- 시트를 읽고 쓰려면 `spreadsheets` 스코프가 필요합니다. 캘린더/드라이브 연동을 이 기능이 추가되기 전에 이미 설정했다면, **# 회계장부** 채널에 "재연결" 버튼이 뜹니다 — 눌러서 시트 접근 동의를 다시 받아주세요. 기존 캘린더/드라이브 연결은 그대로 유지됩니다.
-- [Google Cloud Console](https://console.cloud.google.com/apis/library/sheets.googleapis.com) → APIs & Services → Library에서 **Google Sheets API**도 별도로 Enable 되어 있어야 합니다 (Google Calendar API와 별개). 활성화되어 있지 않으면 재연결 여부와 무관하게 "시트 접근 권한이 없습니다" 오류가 계속 뜹니다.
-
-## 6. Slack 연동 설정 (할일 → 슬랙 전송)
+## 5. Slack 연동 설정 (할일 → 슬랙 전송)
 
 **# 할일** 채널에서 할일 내용을 슬랙 채널로 전송하려면, 구글 캘린더와 마찬가지로 누군가 한 번 슬랙 워크스페이스를 연결해야 합니다. 이후로는 링크에 접속하는 모두가 할일마다 슬랙 채널을 선택하고 전송 버튼을 쓸 수 있습니다.
 
@@ -99,11 +89,11 @@ cp .env.example .env
 
 > 연결을 끊고 싶다면 할일 채널 상단의 **슬랙 연결 해제** 버튼을 사용하세요. 로그인이 없으므로 접속하는 누구나 연결/해제할 수 있습니다.
 
-## 7. 할일 담당자
+## 6. 할일 담당자
 
 계정이 없기 때문에 할일 담당자는 실제 로그인 계정이 아니라 그냥 이름 문자열입니다. 담당자 선택 UI에는 `src/components/task-board.tsx`의 `TEAM_MEMBERS` 상수에 있는 이름들이 기본으로 뜨고, 그 외 이름은 직접 입력할 수 있습니다. 팀원 명단이 바뀌면 이 상수만 수정하면 됩니다.
 
-## 8. 프로젝트 구조
+## 7. 프로젝트 구조
 
 ```
 src/
@@ -114,16 +104,15 @@ src/
       drive/          # 드라이브 채널
       minutes/        # 회의록 채널
       archive/        # 회의 아카이브 채널
-      ledger/         # 회계장부 채널
       flowboard/      # 플로우보드 채널 (localStorage 전용, DB 미사용)
     api/calendar/     구글 OAuth 콜백 라우트
     api/slack/        슬랙 OAuth 콜백 라우트
-  components/          Sidebar, 채널 헤더, 할일 보드, 캘린더 아젠다, 회계장부 보드, 플로우보드 캔버스 등 UI
-  lib/                 Prisma 클라이언트, 구글 캘린더/드라이브/시트 연동, 슬랙 연동, 회의 요약 로직, 플로우보드 로컬 저장 로직
+  components/          Sidebar, 채널 헤더, 할일 보드, 캘린더 아젠다, 플로우보드 캔버스 등 UI
+  lib/                 Prisma 클라이언트, 구글 캘린더/드라이브 연동, 슬랙 연동, 회의 요약 로직, 플로우보드 로컬 저장 로직
 prisma/schema.prisma   DB 스키마 (Task, Category, CalendarConnection, SlackConnection, MeetingSummary 등) — 플로우보드 데이터는 여기 포함되지 않음(로컬 저장)
 ```
 
-## 9. 자주 쓰는 명령어
+## 8. 자주 쓰는 명령어
 
 ```bash
 npm run dev              # 개발 서버 (Turbopack)
@@ -144,4 +133,3 @@ npx prisma migrate deploy   # 배포된 DB에 마이그레이션 적용 (프로�
 5. Google Cloud Console의 OAuth 클라이언트 **Authorized redirect URIs**와 Slack App의 **Redirect URLs**에도 배포 도메인의 콜백 주소(`https://<도메인>/api/calendar/oauth/callback`, `https://<도메인>/api/slack/oauth/callback`)를 추가합니다.
 6. 로컬에서 `npx vercel env pull`로 배포 환경변수를 받아온 뒤 `npx prisma migrate deploy`로 프로덕션 DB에 스키마를 적용합니다.
 7. Vercel이 커밋을 푸시할 때마다 자동으로 재배포합니다. 배포된 URL을 팀원에게 공유하면 됩니다.
-8. 이미 구글 계정이 연결된 상태에서 회계장부(`spreadsheets` 스코프)가 새로 추가된 경우, **# 회계장부** 채널에서 안내하는 대로 구글 계정을 한 번 재연결해야 시트 접근 권한이 추가됩니다.

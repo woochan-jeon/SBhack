@@ -82,9 +82,11 @@ export function NewEventButton() {
     <div>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3]"
+        title={open ? "닫기" : "일정 추가"}
+        aria-label={open ? "닫기" : "일정 추가"}
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0066cc] text-base font-medium text-white hover:bg-[#0071e3]"
       >
-        {open ? "닫기" : "+ 일정 추가"}
+        {open ? "×" : "+"}
       </button>
       {open && <NewEventForm onDone={() => setOpen(false)} />}
     </div>

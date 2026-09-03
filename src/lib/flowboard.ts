@@ -21,8 +21,16 @@ export interface Project {
   tasks: Task[];
 }
 
+export interface Marker {
+  id: string;
+  /** YYYY-MM-DD */
+  date: string;
+  label: string;
+}
+
 export interface BoardState {
   projects: Project[];
+  markers: Marker[];
   pan: { x: number; y: number };
   zoom: number;
 }
@@ -76,6 +84,16 @@ export function createProject(name: string, labelX: number, labelY: number): Pro
   };
 }
 
+export function createMarker(date: string, label: string): Marker {
+  return { id: nextId("marker"), date, label };
+}
+
+/** Parses a `YYYY-MM-DD` (e.g. from an `<input type="date">`) as a local-timezone date. */
+export function parseDateInput(value: string): Date {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
 function seedTask(
   title: string,
   status: Status,
@@ -100,15 +118,20 @@ function seedBoardState(): BoardState {
 
   return {
     projects: [projectA, projectB],
+    markers: [],
     pan: { x: 0, y: 0 },
     zoom: 1,
   };
 }
 
-/** Old saved boards predate `parentId`; infer a linear chain from array order so existing layouts don't break. */
-function migrateParentIds(state: BoardState): BoardState {
+/**
+ * Old saved boards predate `parentId` and `markers`; infer a linear chain from
+ * array order and default in an empty marker list so existing layouts don't break.
+ */
+function migrateBoardState(state: BoardState): BoardState {
   return {
     ...state,
+    markers: Array.isArray(state.markers) ? state.markers : [],
     projects: state.projects.map((p) => ({
       ...p,
       tasks: p.tasks.map((t, i) => ({
@@ -126,7 +149,7 @@ export function loadBoardState(): BoardState {
     if (!raw) return seedBoardState();
     const parsed = JSON.parse(raw) as BoardState;
     if (!parsed.projects || !Array.isArray(parsed.projects)) return seedBoardState();
-    return migrateParentIds(parsed);
+    return migrateBoardState(parsed);
   } catch {
     return seedBoardState();
   }
@@ -166,13 +189,13 @@ export interface TimelineSegments {
 
 /**
  * Builds month/week header segments for a window of `totalDays` days starting
- * `daysBefore` days before today. x=0 corresponds to the window start; the
- * caller positions the whole header (and the today line) using these offsets.
+ * from a fixed anchor (8월 3주, i.e. August 15) of the current year rather than
+ * a rolling window relative to today — keeps the board's date layout stable
+ * from day to day. x=0 corresponds to the window start; the caller positions
+ * the whole header (and the today line) using these offsets.
  */
-export function getTimelineSegments(daysBefore = 30, totalDays = 120): TimelineSegments {
-  const today = dayStart(new Date());
-  const originDate = new Date(today);
-  originDate.setDate(originDate.getDate() - daysBefore);
+export function getTimelineSegments(totalDays = 120): TimelineSegments {
+  const originDate = dayStart(new Date(new Date().getFullYear(), 7, 15));
 
   const months: MonthSegment[] = [];
   const weeks: WeekSegment[] = [];
@@ -219,8 +242,12 @@ export function getTimelineSegments(daysBefore = 30, totalDays = 120): TimelineS
   return { months, weeks, originDate };
 }
 
+export function dateLineX(originDate: Date, date: Date) {
+  return daysBetween(originDate, date) * PIXELS_PER_DAY;
+}
+
 export function todayLineX(originDate: Date) {
-  return daysBetween(originDate, new Date()) * PIXELS_PER_DAY;
+  return dateLineX(originDate, new Date());
 }
 
 export function dateAtX(originDate: Date, x: number): Date {

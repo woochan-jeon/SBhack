@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   bezierPath,
+  createMarker,
   createProject,
   createTask,
   dateAtX,
+  dateLineX,
   formatShortDate,
   getTimelineSegments,
   loadBoardState,
+  parseDateInput,
   saveBoardState,
   todayLineX,
   MAX_ZOOM,
@@ -41,6 +44,9 @@ export default function FlowBoard() {
   const [newProjectName, setNewProjectName] = useState("");
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingProjectName, setEditingProjectName] = useState("");
+  const [showAddMarker, setShowAddMarker] = useState(false);
+  const [newMarkerDate, setNewMarkerDate] = useState("");
+  const [newMarkerLabel, setNewMarkerLabel] = useState("");
   const viewportRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(1200);
 
@@ -235,6 +241,22 @@ export default function FlowBoard() {
     }));
   }
 
+  function handleDeleteProject(project: Project) {
+    if (!confirm(`"${project.name}" 프로젝트를 삭제할까요? 하위 작업도 함께 삭제됩니다.`)) return;
+    if (project.tasks.some((t) => t.id === selectedTaskId)) setSelectedTaskId(null);
+    updateBoard((b) => ({ ...b, projects: b.projects.filter((p) => p.id !== project.id) }));
+  }
+
+  function handleAddMarker(dateValue: string, label: string) {
+    if (!dateValue) return;
+    const marker = createMarker(dateValue, label.trim() || formatShortDate(parseDateInput(dateValue)));
+    updateBoard((b) => ({ ...b, markers: [...b.markers, marker] }));
+  }
+
+  function handleDeleteMarker(markerId: string) {
+    updateBoard((b) => ({ ...b, markers: b.markers.filter((m) => m.id !== markerId) }));
+  }
+
   function handleDeleteTask(projectId: string, taskId: string) {
     updateBoard((b) => ({
       ...b,
@@ -303,6 +325,61 @@ export default function FlowBoard() {
         </div>
 
         <div className="pointer-events-auto flex items-center gap-2">
+          {showAddMarker ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (newMarkerDate) {
+                  handleAddMarker(newMarkerDate, newMarkerLabel);
+                  setNewMarkerDate("");
+                  setNewMarkerLabel("");
+                  setShowAddMarker(false);
+                }
+              }}
+              className="flex items-center gap-1"
+            >
+              <input
+                type="date"
+                autoFocus
+                required
+                value={newMarkerDate}
+                onChange={(e) => setNewMarkerDate(e.target.value)}
+                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-[#7c3aed]"
+              />
+              <input
+                value={newMarkerLabel}
+                onChange={(e) => setNewMarkerLabel(e.target.value)}
+                placeholder="라벨 (예: 마감일)"
+                className="w-24 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#7c3aed]"
+              />
+              <button
+                type="submit"
+                className="rounded-full bg-[#7c3aed] px-2.5 py-1 text-xs text-white hover:bg-[#6d28d9]"
+              >
+                추가
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddMarker(false);
+                  setNewMarkerDate("");
+                  setNewMarkerLabel("");
+                }}
+                className="rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
+              >
+                취소
+              </button>
+            </form>
+          ) : (
+            <button
+              onClick={() => setShowAddMarker(true)}
+              title="날짜 마커 추가"
+              aria-label="날짜 마커 추가"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50"
+            >
+              🚩
+            </button>
+          )}
           {showAddProject ? (
             <form
               onSubmit={(e) => {
@@ -342,9 +419,11 @@ export default function FlowBoard() {
           ) : (
             <button
               onClick={() => setShowAddProject(true)}
-              className="rounded-full bg-[#0066cc] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#0071e3]"
+              title="새 프로젝트 추가"
+              aria-label="새 프로젝트 추가"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0066cc] text-base font-medium text-white hover:bg-[#0071e3]"
             >
-              + 새 프로젝트
+              +
             </button>
           )}
         </div>
@@ -423,6 +502,28 @@ export default function FlowBoard() {
             오늘
           </div>
 
+          {board.markers.map((marker) => {
+            const x = dateLineX(originDate, parseDateInput(marker.date));
+            return (
+              <div key={marker.id} className="group" style={{ position: "absolute", left: x, top: -40 }}>
+                <div style={{ position: "absolute", top: 0, width: 1, height: 2000 }} className="bg-indigo-400/70" />
+                <div className="absolute left-1 top-0 flex items-center gap-1 whitespace-nowrap">
+                  <span className="rounded-full bg-indigo-500 px-2 py-0.5 text-xs font-medium text-white">
+                    {marker.label}
+                  </span>
+                  <button
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={() => handleDeleteMarker(marker.id)}
+                    className="hidden h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] text-gray-400 hover:text-red-600 group-hover:flex"
+                    title="마커 삭제"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
           <svg className="absolute left-0 top-0 overflow-visible" width={1} height={1}>
             {connections.map((c) => (
               <path key={c.id} d={c.d} fill="none" stroke="rgba(100,116,139,0.55)" strokeWidth={2} />
@@ -440,8 +541,16 @@ export default function FlowBoard() {
                 width: PROJECT_WIDTH,
                 height: PROJECT_HEIGHT,
               }}
-              className="flex cursor-ns-resize select-none items-center gap-2 rounded-lg border border-[#0066cc]/40 bg-[#0066cc]/10 px-3 text-sm font-semibold text-[#0066cc] shadow-sm"
+              className="group relative flex cursor-ns-resize select-none items-center gap-2 rounded-lg border border-[#0066cc]/40 bg-[#0066cc]/10 px-3 text-sm font-semibold text-[#0066cc] shadow-sm"
             >
+              <button
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={() => handleDeleteProject(project)}
+                className="absolute -right-2 -top-2 hidden h-5 w-5 items-center justify-center rounded-full border border-gray-300 bg-white text-xs text-gray-400 shadow-sm hover:border-red-300 hover:text-red-600 group-hover:flex"
+                title="프로젝트 삭제"
+              >
+                ×
+              </button>
               <span aria-hidden>📁</span>
               {editingProjectId === project.id ? (
                 <input
