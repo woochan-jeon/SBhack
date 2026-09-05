@@ -28,14 +28,20 @@ export interface Marker {
   label: string;
 }
 
+/** A cross-project link between two tasks, drawn from one task's bottom edge to another's. */
+export interface CrossLink {
+  id: string;
+  fromTaskId: string;
+  toTaskId: string;
+}
+
 export interface BoardState {
   projects: Project[];
   markers: Marker[];
+  links: CrossLink[];
   pan: { x: number; y: number };
   zoom: number;
 }
-
-export const STORAGE_KEY = "wonder-flowboard-v1";
 
 export const MIN_ZOOM = 0.4;
 export const MAX_ZOOM = 2;
@@ -88,6 +94,10 @@ export function createMarker(date: string, label: string): Marker {
   return { id: nextId("marker"), date, label };
 }
 
+export function createLink(fromTaskId: string, toTaskId: string): CrossLink {
+  return { id: nextId("link"), fromTaskId, toTaskId };
+}
+
 /** Parses a `YYYY-MM-DD` (e.g. from an `<input type="date">`) as a local-timezone date. */
 export function parseDateInput(value: string): Date {
   const [y, m, d] = value.split("-").map(Number);
@@ -106,7 +116,7 @@ function seedTask(
   return { id: nextId("task"), title, status, assignee, dateRange, description: "", x, y, parentId };
 }
 
-function seedBoardState(): BoardState {
+export function seedBoardState(): BoardState {
   const projectA = createProject("Project A", 40, 120);
   const a1 = seedTask("기획안 작성", "done", 260, 120, "서윤", "9월 1주", null);
   const a2 = seedTask("디자인 시안", "doing", 480, 120, "태희", "9월 2주", a1.id);
@@ -119,19 +129,22 @@ function seedBoardState(): BoardState {
   return {
     projects: [projectA, projectB],
     markers: [],
+    links: [],
     pan: { x: 0, y: 0 },
     zoom: 1,
   };
 }
 
 /**
- * Old saved boards predate `parentId` and `markers`; infer a linear chain from
- * array order and default in an empty marker list so existing layouts don't break.
+ * Old saved boards predate `parentId`, `markers`, and cross-project `links`;
+ * infer a linear chain from array order and default in empty lists so
+ * existing layouts don't break.
  */
-function migrateBoardState(state: BoardState): BoardState {
+export function migrateBoardState(state: BoardState): BoardState {
   return {
     ...state,
     markers: Array.isArray(state.markers) ? state.markers : [],
+    links: Array.isArray(state.links) ? state.links : [],
     projects: state.projects.map((p) => ({
       ...p,
       tasks: p.tasks.map((t, i) => ({
@@ -140,24 +153,6 @@ function migrateBoardState(state: BoardState): BoardState {
       })),
     })),
   };
-}
-
-export function loadBoardState(): BoardState {
-  if (typeof window === "undefined") return seedBoardState();
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return seedBoardState();
-    const parsed = JSON.parse(raw) as BoardState;
-    if (!parsed.projects || !Array.isArray(parsed.projects)) return seedBoardState();
-    return migrateBoardState(parsed);
-  } catch {
-    return seedBoardState();
-  }
-}
-
-export function saveBoardState(state: BoardState) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 export function dayStart(date: Date) {
@@ -247,10 +242,6 @@ export function dateLineX(originDate: Date, date: Date) {
   return daysBetween(originDate, date) * PIXELS_PER_DAY;
 }
 
-export function todayLineX(originDate: Date) {
-  return dateLineX(originDate, new Date());
-}
-
 export function dateAtX(originDate: Date, x: number): Date {
   const date = new Date(originDate);
   date.setDate(date.getDate() + Math.round(x / PIXELS_PER_DAY));
@@ -264,4 +255,10 @@ export function formatShortDate(date: Date): string {
 export function bezierPath(x1: number, y1: number, x2: number, y2: number) {
   const off = Math.max(50, Math.abs(x2 - x1) * 0.55);
   return `M ${x1} ${y1} C ${x1 + off} ${y1}, ${x2 - off} ${y2}, ${x2} ${y2}`;
+}
+
+/** Vertical bezier from a task's bottom edge down/into another task, for cross-project links. */
+export function verticalBezierPath(x1: number, y1: number, x2: number, y2: number) {
+  const off = Math.max(40, Math.abs(y2 - y1) * 0.5);
+  return `M ${x1} ${y1} C ${x1} ${y1 + off}, ${x2} ${y2 - off}, ${x2} ${y2}`;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { BoardState } from "@/lib/flowboard";
 
 const FlowBoard = dynamic(() => import("@/components/flow-board"), {
   ssr: false,
@@ -9,6 +10,6 @@ const FlowBoard = dynamic(() => import("@/components/flow-board"), {
   ),
 });
 
-export default function FlowBoardLoader() {
-  return <FlowBoard />;
+export default function FlowBoardLoader({ initialState }: { initialState: BoardState }) {
+  return <FlowBoard initialState={initialState} />;
 }

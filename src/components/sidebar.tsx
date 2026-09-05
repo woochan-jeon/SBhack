@@ -7,6 +7,7 @@ import { useState } from "react";
 const CHANNELS = [
   { href: "/tasks", label: "할일", icon: "✅" },
   { href: "/calendar", label: "캘린더", icon: "📅" },
+  { href: "/worklog", label: "업무일지", icon: "📔" },
   { href: "/drive", label: "드라이브", icon: "🗂️" },
   { href: "/minutes", label: "회의록", icon: "📝" },
   { href: "/archive", label: "회의 아카이브", icon: "🗄️" },
@@ -19,7 +20,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <div className="flex items-center justify-between bg-black px-3 py-3 text-white md:hidden">
+      <div className="flex items-center justify-between bg-[#002D56] px-3 py-3 text-white md:hidden">
         <button
           onClick={() => setOpen(true)}
           aria-label="채널 목록 열기"
@@ -40,7 +41,7 @@ export default function Sidebar() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col bg-black text-white transition-transform duration-200 ease-out md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col bg-[#002D56] text-white transition-transform duration-200 ease-out md:static md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >

@@ -73,6 +73,48 @@ model SlackConnection {
   createdAt   DateTime @default(now())
 }
 
+// Singleton row: the team-shared flowboard canvas. Stored as one JSON blob
+// (projects/tasks/markers/pan/zoom) since the whole board is saved wholesale
+// from the client canvas rather than queried field-by-field.
+model FlowBoard {
+  id        String   @id @default(cuid())
+  stateJson String
+  updatedAt DateTime @updatedAt
+}
+
+enum WorkLogStatus {
+  DONE
+  PLANNED
+}
+
+// A selectable identity for # 업무일지 entries. There's no login/account system
+// in this app, so this is just a display-name registry (picked client-side
+// and remembered per browser), not a real user record.
+model WorkLogMember {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  entries WorkLogEntry[]
+}
+
+// One day's freeform note from one member in # 업무일지, mirroring the team's
+// old per-person calendar spreadsheet (검정 = done, 파랑 = planned).
+model WorkLogEntry {
+  id        String        @id @default(cuid())
+  date      DateTime
+  content   String
+  status    WorkLogStatus @default(PLANNED)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  memberId String
+  member   WorkLogMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@index([memberId, date])
+}
+
 // Curated agenda/decision summaries for the # 회의 아카이브 channel, sourced from
 // the Gemini-generated meeting minutes in the Drive "Meet Recordings" folder.
 model MeetingSummary {

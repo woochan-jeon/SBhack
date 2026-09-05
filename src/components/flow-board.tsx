@@ -3,17 +3,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   bezierPath,
+  createLink,
   createMarker,
   createProject,
   createTask,
   dateAtX,
   dateLineX,
+  dayStart,
   formatShortDate,
   getTimelineSegments,
-  loadBoardState,
   parseDateInput,
-  saveBoardState,
-  todayLineX,
+  verticalBezierPath,
   MAX_ZOOM,
   MIN_ZOOM,
   PIXELS_PER_DAY,
@@ -24,18 +24,19 @@ import {
   type Status,
   type Task,
 } from "@/lib/flowboard";
+import { saveBoardStateAction } from "@/app/(app)/flowboard/actions";
 
 const PROJECT_WIDTH = 150;
 const PROJECT_HEIGHT = 48;
-const TASK_WIDTH = 168;
-const TASK_HEIGHT = 56;
+const TASK_WIDTH = 134;
+const TASK_HEIGHT = 45;
 
 function clampZoom(z: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 }
 
-export default function FlowBoard() {
-  const [board, setBoard] = useState<BoardState>(() => loadBoardState());
+export default function FlowBoard({ initialState }: { initialState: BoardState }) {
+  const [board, setBoard] = useState<BoardState>(initialState);
   const [pan, setPan] = useState(() => board.pan);
   const [zoom, setZoom] = useState(() => board.zoom);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -47,6 +48,8 @@ export default function FlowBoard() {
   const [showAddMarker, setShowAddMarker] = useState(false);
   const [newMarkerDate, setNewMarkerDate] = useState("");
   const [newMarkerLabel, setNewMarkerLabel] = useState("");
+  const [linkDrag, setLinkDrag] = useState<{ fromTaskId: string; x: number; y: number } | null>(null);
+  const [hoveredLinkId, setHoveredLinkId] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(1200);
 
@@ -62,7 +65,7 @@ export default function FlowBoard() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      saveBoardState({ ...board, pan, zoom });
+      saveBoardStateAction({ ...board, pan, zoom }).catch(() => {});
     }, 500);
     return () => clearTimeout(timer);
   }, [board, pan, zoom]);
@@ -94,7 +97,21 @@ export default function FlowBoard() {
   }, [applyZoom]);
 
   const { months, weeks, originDate } = useMemo(() => getTimelineSegments(), []);
-  const todayX = useMemo(() => todayLineX(originDate), [originDate]);
+
+  // The "오늘" line must track the real calendar date even if this tab is left
+  // open across midnight, so it's kept in state and re-checked periodically
+  // rather than computed once with `new Date()` at mount.
+  const [today, setToday] = useState(() => dayStart(new Date()));
+  useEffect(() => {
+    const id = setInterval(() => {
+      setToday((prev) => {
+        const now = dayStart(new Date());
+        return now.getTime() === prev.getTime() ? prev : now;
+      });
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const todayX = useMemo(() => dateLineX(originDate, today), [originDate, today]);
 
   const dayGridLines: number[] = [];
   if (draggingTaskId) {
@@ -106,6 +123,10 @@ export default function FlowBoard() {
 
   const draggingTask = draggingTaskId
     ? board.projects.flatMap((p) => p.tasks).find((t) => t.id === draggingTaskId) ?? null
+    : null;
+
+  const linkDragFromTask = linkDrag
+    ? board.projects.flatMap((p) => p.tasks).find((t) => t.id === linkDrag.fromTaskId) ?? null
     : null;
 
   const updateBoard = useCallback((updater: (b: BoardState) => BoardState) => {
@@ -125,6 +146,22 @@ export default function FlowBoard() {
     }
     return paths;
   }, [board]);
+
+  const crossLinkPaths = useMemo(() => {
+    const allTasks = board.projects.flatMap((p) => p.tasks);
+    const paths: { id: string; d: string; midX: number; midY: number }[] = [];
+    for (const link of board.links) {
+      const from = allTasks.find((t) => t.id === link.fromTaskId);
+      const to = allTasks.find((t) => t.id === link.toTaskId);
+      if (!from || !to) continue;
+      const x1 = from.x + TASK_WIDTH / 2;
+      const y1 = from.y + TASK_HEIGHT;
+      const x2 = to.x + TASK_WIDTH / 2;
+      const y2 = to.y;
+      paths.push({ id: link.id, d: verticalBezierPath(x1, y1, x2, y2), midX: (x1 + x2) / 2, midY: (y1 + y2) / 2 });
+    }
+    return paths;
+  }, [board.projects, board.links]);
 
   let selected: { project: Project; task: Task } | null = null;
   if (selectedTaskId) {
@@ -189,6 +226,51 @@ export default function FlowBoard() {
     window.addEventListener("mouseup", onUp);
   }
 
+  function handleLinkHandleMouseDown(e: React.MouseEvent, task: Task) {
+    e.stopPropagation();
+    if (e.button !== 0) return;
+    const viewportEl = viewportRef.current;
+    if (!viewportEl) return;
+    setLinkDrag({ fromTaskId: task.id, x: task.x + TASK_WIDTH / 2, y: task.y + TASK_HEIGHT });
+    function onMove(ev: MouseEvent) {
+      const rect = viewportEl!.getBoundingClientRect();
+      setLinkDrag({
+        fromTaskId: task.id,
+        x: (ev.clientX - rect.left - pan.x) / zoom,
+        y: (ev.clientY - rect.top - pan.y) / zoom,
+      });
+    }
+    function onUp(ev: MouseEvent) {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      setLinkDrag(null);
+      const dropEl = document.elementFromPoint(ev.clientX, ev.clientY);
+      const targetTaskId = dropEl?.closest<HTMLElement>("[data-task-id]")?.dataset.taskId;
+      if (targetTaskId && targetTaskId !== task.id) {
+        handleCreateLink(task.id, targetTaskId);
+      }
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
+  function handleCreateLink(fromTaskId: string, toTaskId: string) {
+    updateBoard((b) => {
+      const alreadyLinked = b.links.some(
+        (l) =>
+          (l.fromTaskId === fromTaskId && l.toTaskId === toTaskId) ||
+          (l.fromTaskId === toTaskId && l.toTaskId === fromTaskId),
+      );
+      if (alreadyLinked) return b;
+      return { ...b, links: [...b.links, createLink(fromTaskId, toTaskId)] };
+    });
+  }
+
+  function handleDeleteLink(linkId: string) {
+    updateBoard((b) => ({ ...b, links: b.links.filter((l) => l.id !== linkId) }));
+    setHoveredLinkId(null);
+  }
+
   function handleProjectMouseDown(e: React.MouseEvent, project: Project) {
     e.stopPropagation();
     if (e.button !== 0) return;
@@ -249,7 +331,12 @@ export default function FlowBoard() {
   function handleDeleteProject(project: Project) {
     if (!confirm(`"${project.name}" 프로젝트를 삭제할까요? 하위 작업도 함께 삭제됩니다.`)) return;
     if (project.tasks.some((t) => t.id === selectedTaskId)) setSelectedTaskId(null);
-    updateBoard((b) => ({ ...b, projects: b.projects.filter((p) => p.id !== project.id) }));
+    const removedTaskIds = new Set(project.tasks.map((t) => t.id));
+    updateBoard((b) => ({
+      ...b,
+      projects: b.projects.filter((p) => p.id !== project.id),
+      links: b.links.filter((l) => !removedTaskIds.has(l.fromTaskId) && !removedTaskIds.has(l.toTaskId)),
+    }));
   }
 
   function handleAddMarker(dateValue: string, label: string) {
@@ -276,6 +363,7 @@ export default function FlowBoard() {
             .map((t) => (t.parentId === taskId ? { ...t, parentId: newParentId } : t)),
         };
       }),
+      links: b.links.filter((l) => l.fromTaskId !== taskId && l.toTaskId !== taskId),
     }));
     setSelectedTaskId(null);
   }
@@ -533,7 +621,60 @@ export default function FlowBoard() {
             {connections.map((c) => (
               <path key={c.id} d={c.d} fill="none" stroke="rgba(100,116,139,0.55)" strokeWidth={2} />
             ))}
+            {crossLinkPaths.map((l) => (
+              <g key={l.id}>
+                <path
+                  d={l.d}
+                  fill="none"
+                  stroke="transparent"
+                  strokeWidth={14}
+                  style={{ pointerEvents: "stroke", cursor: "pointer" }}
+                  onMouseEnter={() => setHoveredLinkId(l.id)}
+                  onMouseLeave={() => setHoveredLinkId((id) => (id === l.id ? null : id))}
+                />
+                <path
+                  d={l.d}
+                  fill="none"
+                  stroke="#7c3aed"
+                  strokeWidth={2}
+                  strokeDasharray="6 4"
+                  style={{ pointerEvents: "none" }}
+                />
+              </g>
+            ))}
+            {linkDrag && linkDragFromTask && (
+              <path
+                d={verticalBezierPath(
+                  linkDragFromTask.x + TASK_WIDTH / 2,
+                  linkDragFromTask.y + TASK_HEIGHT,
+                  linkDrag.x,
+                  linkDrag.y,
+                )}
+                fill="none"
+                stroke="#7c3aed"
+                strokeWidth={2}
+                strokeDasharray="4 4"
+                style={{ pointerEvents: "none" }}
+              />
+            )}
           </svg>
+          {crossLinkPaths.map(
+            (l) =>
+              hoveredLinkId === l.id && (
+                <button
+                  key={`del-${l.id}`}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onMouseEnter={() => setHoveredLinkId(l.id)}
+                  onMouseLeave={() => setHoveredLinkId((id) => (id === l.id ? null : id))}
+                  onClick={() => handleDeleteLink(l.id)}
+                  style={{ position: "absolute", left: l.midX - 8, top: l.midY - 8, width: 16, height: 16 }}
+                  className="flex items-center justify-center rounded-full border border-gray-300 bg-white text-[10px] text-gray-400 shadow-sm hover:text-red-600"
+                  title="연결 삭제"
+                >
+                  ×
+                </button>
+              ),
+          )}
 
           {board.projects.map((project) => (
             <div
@@ -587,9 +728,10 @@ export default function FlowBoard() {
             project.tasks.map((task) => (
               <div
                 key={task.id}
+                data-task-id={task.id}
                 onMouseDown={(e) => handleTaskMouseDown(e, project.id, task)}
                 style={{ position: "absolute", left: task.x, top: task.y, width: TASK_WIDTH, height: TASK_HEIGHT }}
-                className="flex cursor-grab select-none flex-col gap-1 rounded-lg border border-gray-200 bg-white p-3 text-xs shadow-sm hover:border-gray-300"
+                className="group relative flex cursor-grab select-none flex-col gap-1 rounded-lg border border-gray-200 bg-white p-3 text-xs shadow-sm hover:border-gray-300"
               >
                 <div className="flex items-center gap-1.5">
                   <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT_CLASS[task.status]}`} aria-hidden />
@@ -599,6 +741,11 @@ export default function FlowBoard() {
                   {task.assignee && <span className="truncate">{task.assignee}</span>}
                   {task.dateRange && <span className="truncate">· {task.dateRange}</span>}
                 </div>
+                <div
+                  onMouseDown={(e) => handleLinkHandleMouseDown(e, task)}
+                  title="드래그해서 다른 프로젝트의 작업과 연결"
+                  className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 cursor-crosshair rounded-full border-2 border-white bg-[#7c3aed] opacity-0 shadow group-hover:opacity-100"
+                />
               </div>
             )),
           )}

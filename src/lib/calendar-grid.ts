@@ -46,6 +46,38 @@ export function shiftMonth(year: number, month: number, delta: number) {
   return { year: d.getFullYear(), month: d.getMonth() };
 }
 
+export function parseWeekParam(param: string | undefined): Date {
+  if (param && /^\d{4}-\d{2}-\d{2}$/.test(param)) {
+    const [y, m, d] = param.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  const today = new Date();
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+}
+
+export function weekParam(date: Date) {
+  return toDateKey(date);
+}
+
+export function shiftWeek(date: Date, deltaWeeks: number) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + deltaWeeks * 7);
+  return d;
+}
+
+/** The Sun–Sat week (7 days) containing `date`. */
+export function getWeekGrid(date: Date): Date[] {
+  const start = new Date(date);
+  start.setDate(start.getDate() - start.getDay());
+  const days: Date[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    days.push(d);
+  }
+  return days;
+}
+
 /** Returns the full calendar grid (Sun–Sat weeks) covering the given month, padded with adjacent days. */
 export function getMonthGrid(year: number, month: number) {
   const firstOfMonth = new Date(year, month, 1);
