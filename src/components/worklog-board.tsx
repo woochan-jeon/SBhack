@@ -249,10 +249,8 @@ function DayCell({
           +
         </button>
       </div>
-      <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
-        {entries.map((entry) => (
-          <EntryRow key={entry.id} entry={entry} onClick={() => onEditEntry(entry.id)} />
-        ))}
+      <div className="flex flex-1 flex-col gap-1 overflow-y-auto">
+        <EntryList entries={entries} onEditEntry={onEditEntry} />
       </div>
     </div>
   );
@@ -287,9 +285,7 @@ function MobileDayAccordion({
         <span className="text-xs text-gray-400">{entries.length > 0 ? `${entries.length}건` : ""}</span>
       </summary>
       <div className="flex flex-col gap-1 border-t border-gray-100 p-2">
-        {entries.map((entry) => (
-          <EntryRow key={entry.id} entry={entry} onClick={() => onEditEntry(entry.id)} />
-        ))}
+        <EntryList entries={entries} onEditEntry={onEditEntry} />
         <button
           type="button"
           onClick={onAdd}
@@ -304,20 +300,52 @@ function MobileDayAccordion({
   );
 }
 
-function EntryRow({ entry, onClick }: { entry: EntryVM; onClick: () => void }) {
+// Groups entries by member, preserving each member's first-appearance order,
+// so a day's entries cluster by person (박서윤, 박서윤, 오혜솔, ...) instead
+// of the raw creation order they'd otherwise come back from the DB in.
+function groupEntriesByMember(entries: EntryVM[]): { memberId: string; memberName: string; entries: EntryVM[] }[] {
+  const order: string[] = [];
+  const groups = new Map<string, EntryVM[]>();
+  for (const entry of entries) {
+    if (!groups.has(entry.memberId)) {
+      groups.set(entry.memberId, []);
+      order.push(entry.memberId);
+    }
+    groups.get(entry.memberId)!.push(entry);
+  }
+  return order.map((memberId) => ({
+    memberId,
+    memberName: groups.get(memberId)![0].memberName,
+    entries: groups.get(memberId)!,
+  }));
+}
+
+function EntryList({ entries, onEditEntry }: { entries: EntryVM[]; onEditEntry: (id: string) => void }) {
+  return (
+    <>
+      {groupEntriesByMember(entries).map((group) => (
+        <div key={group.memberId} className="flex flex-col gap-0.5">
+          <span className="px-1.5 text-[10px] font-semibold text-gray-500">{group.memberName}</span>
+          {group.entries.map((entry) => (
+            <EntryContentRow key={entry.id} entry={entry} onClick={() => onEditEntry(entry.id)} />
+          ))}
+        </div>
+      ))}
+    </>
+  );
+}
+
+function EntryContentRow({ entry, onClick }: { entry: EntryVM; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full flex-col items-start gap-0.5 rounded px-1.5 py-1 text-left text-[11px] hover:bg-gray-100"
+      className="flex w-full items-start gap-1 rounded px-1.5 py-0.5 text-left text-[11px] hover:bg-gray-100"
     >
-      <span className="flex items-center gap-1 font-medium text-gray-500">
-        <span
-          className={`h-1.5 w-1.5 shrink-0 rounded-full ${entry.status === "DONE" ? "bg-gray-900" : "bg-blue-600"}`}
-          aria-hidden
-        />
-        {entry.memberName}
-      </span>
+      <span
+        className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${entry.status === "DONE" ? "bg-gray-900" : "bg-blue-600"}`}
+        aria-hidden
+      />
       <span className={`line-clamp-2 ${entry.status === "DONE" ? "text-gray-900" : "text-blue-700"}`}>
         {entry.content}
       </span>
