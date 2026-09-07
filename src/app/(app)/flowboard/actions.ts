@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { migrateBoardState, seedBoardState, type BoardState } from "@/lib/flowboard";
 
@@ -23,4 +24,5 @@ export async function saveBoardStateAction(state: BoardState): Promise<void> {
   } else {
     await prisma.flowBoard.create({ data: { stateJson } });
   }
+  revalidatePath("/flowboard");
 }
