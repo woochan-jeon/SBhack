@@ -4,11 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { WorkLogStatus } from "@/generated/prisma/enums";
+import { WORKLOG_MEMBER_CANDIDATES } from "@/lib/worklog-roster";
 
 export type ActionState = { error?: string };
 
 const createMemberSchema = z.object({
-  name: z.string().trim().min(1, "이름을 입력해 주세요").max(30),
+  name: z.enum(WORKLOG_MEMBER_CANDIDATES, { message: "목록에 없는 이름입니다" }),
 });
 
 export async function createMemberAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
@@ -54,7 +55,6 @@ export async function createEntryAction(_prevState: ActionState, formData: FormD
 
 const updateEntrySchema = z.object({
   entryId: z.string().min(1),
-  memberId: z.string().min(1),
   content: z.string().trim().min(1, "내용을 입력해 주세요").max(2000),
   status: z.enum(["DONE", "PLANNED"]),
 });
@@ -62,25 +62,22 @@ const updateEntrySchema = z.object({
 export async function updateEntryAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = updateEntrySchema.safeParse({
     entryId: formData.get("entryId"),
-    memberId: formData.get("memberId"),
     content: formData.get("content"),
     status: formData.get("status"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요" };
-  const { entryId, memberId, content, status } = parsed.data;
+  const { entryId, content, status } = parsed.data;
 
-  const entry = await prisma.workLogEntry.findUnique({ where: { id: entryId } });
-  if (!entry) return { error: "기록을 찾을 수 없습니다" };
-  if (entry.memberId !== memberId) return { error: "본인이 작성한 기록만 수정할 수 있습니다" };
-
-  await prisma.workLogEntry.update({ where: { id: entryId }, data: { content, status: status as WorkLogStatus } });
+  const result = await prisma.workLogEntry.updateMany({
+    where: { id: entryId },
+    data: { content, status: status as WorkLogStatus },
+  });
+  if (result.count === 0) return { error: "기록을 찾을 수 없습니다" };
   revalidatePath("/worklog");
   return {};
 }
 
-export async function deleteEntryAction(entryId: string, actingMemberId: string) {
-  const entry = await prisma.workLogEntry.findUnique({ where: { id: entryId } });
-  if (!entry || entry.memberId !== actingMemberId) return;
-  await prisma.workLogEntry.delete({ where: { id: entryId } });
+export async function deleteEntryAction(entryId: string) {
+  await prisma.workLogEntry.deleteMany({ where: { id: entryId } });
   revalidatePath("/worklog");
 }

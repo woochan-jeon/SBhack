@@ -11,6 +11,7 @@ import {
   type ActionState,
 } from "@/app/(app)/worklog/actions";
 import { toDateKey } from "@/lib/calendar-grid";
+import { WORKLOG_MEMBER_CANDIDATES } from "@/lib/worklog-roster";
 
 type WorkLogStatus = "DONE" | "PLANNED";
 
@@ -200,14 +201,7 @@ export default function WorklogBoard({
         <AddEntryModal date={addingDate} member={currentMember} onClose={() => setAddingDate(null)} />
       )}
 
-      {editingEntry && (
-        <EditEntryModal
-          entry={editingEntry}
-          canEdit={editingEntry.memberId === currentMemberId}
-          currentMemberId={currentMemberId}
-          onClose={() => setEditingEntryId(null)}
-        />
-      )}
+      {editingEntry && <EditEntryModal entry={editingEntry} onClose={() => setEditingEntryId(null)} />}
     </div>
   );
 }
@@ -376,6 +370,9 @@ function MemberSwitcher({
     return result;
   }, initialState);
 
+  const registeredNames = new Set(members.map((m) => m.name));
+  const availableCandidates = WORKLOG_MEMBER_CANDIDATES.filter((name) => !registeredNames.has(name));
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-xs text-gray-500">나:</span>
@@ -401,14 +398,24 @@ function MemberSwitcher({
       {managing && (
         <div className="flex flex-wrap items-center gap-2">
           <form ref={formRef} action={formAction} className="flex items-center gap-1">
-            <input
+            <select
               name="name"
-              placeholder="이름 추가"
-              className="w-24 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 outline-none focus:border-[#0066cc]"
-            />
+              disabled={availableCandidates.length === 0}
+              defaultValue=""
+              className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-[#0066cc] disabled:opacity-60"
+            >
+              <option value="" disabled>
+                {availableCandidates.length === 0 ? "추가할 팀원 없음" : "이름 선택"}
+              </option>
+              {availableCandidates.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
             <button
               type="submit"
-              disabled={pending}
+              disabled={pending || availableCandidates.length === 0}
               className="rounded-full bg-[#0066cc] px-2 py-1 text-xs text-white hover:bg-[#0071e3] disabled:opacity-60"
             >
               추가
@@ -490,17 +497,7 @@ function AddEntryModal({ date, member, onClose }: { date: string; member: Member
   );
 }
 
-function EditEntryModal({
-  entry,
-  canEdit,
-  currentMemberId,
-  onClose,
-}: {
-  entry: EntryVM;
-  canEdit: boolean;
-  currentMemberId: string | null;
-  onClose: () => void;
-}) {
+function EditEntryModal({ entry, onClose }: { entry: EntryVM; onClose: () => void }) {
   const [content, setContent] = useState(entry.content);
   const [status, setStatus] = useState<WorkLogStatus>(entry.status);
   const [, startTransition] = useTransition();
@@ -527,52 +524,42 @@ function EditEntryModal({
             ✕
           </button>
         </div>
-        {canEdit ? (
-          <form action={formAction} className="flex flex-col gap-3">
-            <input type="hidden" name="entryId" value={entry.id} />
-            <input type="hidden" name="memberId" value={currentMemberId ?? ""} />
-            <input type="hidden" name="status" value={status} />
-            <textarea
-              name="content"
-              autoFocus
-              required
-              rows={4}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="resize-none rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc]"
-            />
-            <StatusToggle status={status} onChange={setStatus} />
-            {state.error && <p className="text-sm text-red-600">{state.error}</p>}
-            <div className="flex justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirm("이 기록을 삭제할까요?")) {
-                    startTransition(() => deleteEntryAction(entry.id, currentMemberId ?? ""));
-                    onClose();
-                  }
-                }}
-                className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
-              >
-                삭제
-              </button>
-              <button
-                type="submit"
-                disabled={pending}
-                className="rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3] disabled:opacity-60"
-              >
-                {pending ? "저장 중..." : "저장"}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <p className={`whitespace-pre-wrap text-sm ${entry.status === "DONE" ? "text-gray-900" : "text-blue-700"}`}>
-              {entry.content}
-            </p>
-            <p className="text-xs text-gray-400">본인이 작성한 기록만 수정·삭제할 수 있어요.</p>
-          </>
-        )}
+        <form action={formAction} className="flex flex-col gap-3">
+          <input type="hidden" name="entryId" value={entry.id} />
+          <input type="hidden" name="status" value={status} />
+          <textarea
+            name="content"
+            autoFocus
+            required
+            rows={4}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="resize-none rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc]"
+          />
+          <StatusToggle status={status} onChange={setStatus} />
+          {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+          <div className="flex justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("이 기록을 삭제할까요?")) {
+                  startTransition(() => deleteEntryAction(entry.id));
+                  onClose();
+                }
+              }}
+              className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+            >
+              삭제
+            </button>
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-full bg-[#0066cc] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0071e3] disabled:opacity-60"
+            >
+              {pending ? "저장 중..." : "저장"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
