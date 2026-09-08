@@ -115,6 +115,20 @@ model WorkLogEntry {
   @@index([memberId, date])
 }
 
+// Shared team credentials for # 비밀번호. Gated behind a passphrase at the page
+// level (see src/lib/password-gate.ts) since the workspace itself has no login.
+model PasswordEntry {
+  id        String   @id @default(cuid())
+  service   String
+  account   String?
+  password  String
+  note      String?
+  sourceUrl String?
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // Curated agenda/decision summaries for the # 회의 아카이브 channel, sourced from
 // the Gemini-generated meeting minutes in the Drive "Meet Recordings" folder.
 model MeetingSummary {

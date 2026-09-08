@@ -12,6 +12,7 @@ const CHANNELS = [
   { href: "/minutes", label: "회의록", icon: "📝" },
   { href: "/archive", label: "회의 아카이브", icon: "🗄️" },
   { href: "/flowboard", label: "플로우보드", icon: "🗺️" },
+  { href: "/passwords", label: "비밀번호", icon: "🔒" },
 ];
 
 export default function Sidebar() {
