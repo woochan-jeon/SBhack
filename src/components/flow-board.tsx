@@ -50,6 +50,7 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
   const [newMarkerLabel, setNewMarkerLabel] = useState("");
   const [linkDrag, setLinkDrag] = useState<{ fromTaskId: string; x: number; y: number } | null>(null);
   const [hoveredLinkId, setHoveredLinkId] = useState<string | null>(null);
+  const [hoveredMergeId, setHoveredMergeId] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(1200);
 
@@ -163,6 +164,50 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
     return paths;
   }, [board.projects, board.links]);
 
+  /** Extra branch curves for tasks that merge in more than one parent (in addition to the primary `parentId`). */
+  const mergePaths = useMemo(() => {
+    const paths: { id: string; d: string; midX: number; midY: number; taskId: string; parentId: string }[] = [];
+    for (const project of board.projects) {
+      for (const task of project.tasks) {
+        for (const parentId of task.extraParentIds) {
+          const parent = project.tasks.find((t) => t.id === parentId);
+          if (!parent) continue;
+          const x1 = parent.x + TASK_WIDTH;
+          const y1 = parent.y + TASK_HEIGHT / 2;
+          const x2 = task.x;
+          const y2 = task.y + TASK_HEIGHT / 2;
+          paths.push({
+            id: `merge-${task.id}-${parentId}`,
+            d: bezierPath(x1, y1, x2, y2),
+            midX: (x1 + x2) / 2,
+            midY: (y1 + y2) / 2,
+            taskId: task.id,
+            parentId,
+          });
+        }
+      }
+    }
+    return paths;
+  }, [board.projects]);
+
+  /** Walks up `parentId`/`extraParentIds` from `startTaskId`; true if `candidateAncestorId` is reachable. */
+  function isAncestor(startTaskId: string, candidateAncestorId: string, tasks: Task[]): boolean {
+    const byId = new Map(tasks.map((t) => [t.id, t]));
+    const queue = [startTaskId];
+    const seen = new Set<string>();
+    while (queue.length) {
+      const id = queue.shift()!;
+      if (id === candidateAncestorId) return true;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const t = byId.get(id);
+      if (!t) continue;
+      if (t.parentId) queue.push(t.parentId);
+      queue.push(...t.extraParentIds);
+    }
+    return false;
+  }
+
   let selected: { project: Project; task: Task } | null = null;
   if (selectedTaskId) {
     for (const project of board.projects) {
@@ -247,7 +292,13 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
       const dropEl = document.elementFromPoint(ev.clientX, ev.clientY);
       const targetTaskId = dropEl?.closest<HTMLElement>("[data-task-id]")?.dataset.taskId;
       if (targetTaskId && targetTaskId !== task.id) {
-        handleCreateLink(task.id, targetTaskId);
+        const sourceProject = board.projects.find((p) => p.tasks.some((t) => t.id === task.id));
+        const sameProject = sourceProject?.tasks.some((t) => t.id === targetTaskId) ?? false;
+        if (sameProject) {
+          handleCreateMerge(task.id, targetTaskId);
+        } else {
+          handleCreateLink(task.id, targetTaskId);
+        }
       }
     }
     window.addEventListener("mousemove", onMove);
@@ -269,6 +320,42 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
   function handleDeleteLink(linkId: string) {
     updateBoard((b) => ({ ...b, links: b.links.filter((l) => l.id !== linkId) }));
     setHoveredLinkId(null);
+  }
+
+  /** Merges `fromTaskId`'s branch into `toTaskId` (both in the same project) as an additional parent. */
+  function handleCreateMerge(fromTaskId: string, toTaskId: string) {
+    updateBoard((b) => {
+      let changed = false;
+      const projects = b.projects.map((p) => {
+        const toTask = p.tasks.find((t) => t.id === toTaskId);
+        const fromTask = p.tasks.find((t) => t.id === fromTaskId);
+        if (!toTask || !fromTask) return p;
+        if (toTask.parentId === fromTaskId || toTask.extraParentIds.includes(fromTaskId)) return p;
+        // Adding this edge would create a cycle if `toTask` already precedes `fromTask`.
+        if (isAncestor(fromTaskId, toTaskId, p.tasks)) return p;
+        changed = true;
+        return {
+          ...p,
+          tasks: p.tasks.map((t) =>
+            t.id !== toTaskId ? t : { ...t, extraParentIds: [...t.extraParentIds, fromTaskId] },
+          ),
+        };
+      });
+      return changed ? { ...b, projects } : b;
+    });
+  }
+
+  function handleDeleteMerge(taskId: string, parentTaskId: string) {
+    updateBoard((b) => ({
+      ...b,
+      projects: b.projects.map((p) => ({
+        ...p,
+        tasks: p.tasks.map((t) =>
+          t.id !== taskId ? t : { ...t, extraParentIds: t.extraParentIds.filter((id) => id !== parentTaskId) },
+        ),
+      })),
+    }));
+    setHoveredMergeId(null);
   }
 
   function handleProjectMouseDown(e: React.MouseEvent, project: Project) {
@@ -360,7 +447,11 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
           ...p,
           tasks: p.tasks
             .filter((t) => t.id !== taskId)
-            .map((t) => (t.parentId === taskId ? { ...t, parentId: newParentId } : t)),
+            .map((t) => ({
+              ...t,
+              parentId: t.parentId === taskId ? newParentId : t.parentId,
+              extraParentIds: t.extraParentIds.filter((id) => id !== taskId),
+            })),
         };
       }),
       links: b.links.filter((l) => l.fromTaskId !== taskId && l.toTaskId !== taskId),
@@ -621,6 +712,26 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
             {connections.map((c) => (
               <path key={c.id} d={c.d} fill="none" stroke="rgba(100,116,139,0.55)" strokeWidth={2} />
             ))}
+            {mergePaths.map((m) => (
+              <g key={m.id}>
+                <path
+                  d={m.d}
+                  fill="none"
+                  stroke="transparent"
+                  strokeWidth={14}
+                  style={{ pointerEvents: "stroke", cursor: "pointer" }}
+                  onMouseEnter={() => setHoveredMergeId(m.id)}
+                  onMouseLeave={() => setHoveredMergeId((id) => (id === m.id ? null : id))}
+                />
+                <path
+                  d={m.d}
+                  fill="none"
+                  stroke={hoveredMergeId === m.id ? "rgba(16,185,129,0.9)" : "rgba(100,116,139,0.55)"}
+                  strokeWidth={2}
+                  style={{ pointerEvents: "none" }}
+                />
+              </g>
+            ))}
             {crossLinkPaths.map((l) => (
               <g key={l.id}>
                 <path
@@ -670,6 +781,23 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
                   style={{ position: "absolute", left: l.midX - 8, top: l.midY - 8, width: 16, height: 16 }}
                   className="flex items-center justify-center rounded-full border border-gray-300 bg-white text-[10px] text-gray-400 shadow-sm hover:text-red-600"
                   title="연결 삭제"
+                >
+                  ×
+                </button>
+              ),
+          )}
+          {mergePaths.map(
+            (m) =>
+              hoveredMergeId === m.id && (
+                <button
+                  key={`del-${m.id}`}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onMouseEnter={() => setHoveredMergeId(m.id)}
+                  onMouseLeave={() => setHoveredMergeId((id) => (id === m.id ? null : id))}
+                  onClick={() => handleDeleteMerge(m.taskId, m.parentId)}
+                  style={{ position: "absolute", left: m.midX - 8, top: m.midY - 8, width: 16, height: 16 }}
+                  className="flex items-center justify-center rounded-full border border-gray-300 bg-white text-[10px] text-gray-400 shadow-sm hover:text-red-600"
+                  title="병합 해제"
                 >
                   ×
                 </button>
@@ -743,7 +871,7 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
                 </div>
                 <div
                   onMouseDown={(e) => handleLinkHandleMouseDown(e, task)}
-                  title="드래그해서 다른 프로젝트의 작업과 연결"
+                  title="드래그해서 다른 작업과 연결 (같은 프로젝트: 병합, 다른 프로젝트: 링크)"
                   className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 cursor-crosshair rounded-full border-2 border-white bg-[#7c3aed] opacity-0 shadow group-hover:opacity-100"
                 />
               </div>

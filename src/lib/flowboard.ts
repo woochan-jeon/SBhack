@@ -11,6 +11,8 @@ export interface Task {
   y: number;
   /** id of the task (or null for a project-level root task) this branches off of. */
   parentId: string | null;
+  /** ids of additional tasks (in the same project) that merge into this task, alongside `parentId`. */
+  extraParentIds: string[];
 }
 
 export interface Project {
@@ -77,6 +79,7 @@ export function createTask(partial?: Partial<Pick<Task, "x" | "y" | "parentId">>
     x: partial?.x ?? 0,
     y: partial?.y ?? 0,
     parentId: partial?.parentId ?? null,
+    extraParentIds: [],
   };
 }
 
@@ -113,7 +116,7 @@ function seedTask(
   dateRange: string,
   parentId: string | null,
 ): Task {
-  return { id: nextId("task"), title, status, assignee, dateRange, description: "", x, y, parentId };
+  return { id: nextId("task"), title, status, assignee, dateRange, description: "", x, y, parentId, extraParentIds: [] };
 }
 
 export function seedBoardState(): BoardState {
@@ -136,9 +139,9 @@ export function seedBoardState(): BoardState {
 }
 
 /**
- * Old saved boards predate `parentId`, `markers`, and cross-project `links`;
- * infer a linear chain from array order and default in empty lists so
- * existing layouts don't break.
+ * Old saved boards predate `parentId`, `markers`, cross-project `links`, and
+ * merge `extraParentIds`; infer a linear chain from array order and default
+ * in empty lists so existing layouts don't break.
  */
 export function migrateBoardState(state: BoardState): BoardState {
   return {
@@ -150,6 +153,7 @@ export function migrateBoardState(state: BoardState): BoardState {
       tasks: p.tasks.map((t, i) => ({
         ...t,
         parentId: t.parentId !== undefined ? t.parentId : i === 0 ? null : p.tasks[i - 1].id,
+        extraParentIds: Array.isArray(t.extraParentIds) ? t.extraParentIds : [],
       })),
     })),
   };
