@@ -48,7 +48,7 @@ export interface BoardState {
 export const MIN_ZOOM = 0.4;
 export const MAX_ZOOM = 2;
 
-export const PIXELS_PER_DAY = 32;
+export const PIXELS_PER_DAY = 48;
 
 export const STATUS_LABEL: Record<Status, string> = {
   planned: "예정",
