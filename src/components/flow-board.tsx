@@ -101,16 +101,25 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
 
   // The "오늘" line must track the real calendar date even if this tab is left
   // open across midnight, so it's kept in state and re-checked periodically
-  // rather than computed once with `new Date()` at mount.
+  // rather than computed once with `new Date()` at mount. Background tabs get
+  // their timers throttled by the browser, so the interval alone can lag for
+  // a while after the tab was hidden; recheck immediately on refocus too.
   const [today, setToday] = useState(() => dayStart(new Date()));
   useEffect(() => {
-    const id = setInterval(() => {
+    const recheckToday = () => {
       setToday((prev) => {
         const now = dayStart(new Date());
         return now.getTime() === prev.getTime() ? prev : now;
       });
-    }, 60_000);
-    return () => clearInterval(id);
+    };
+    const id = setInterval(recheckToday, 60_000);
+    document.addEventListener("visibilitychange", recheckToday);
+    window.addEventListener("focus", recheckToday);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", recheckToday);
+      window.removeEventListener("focus", recheckToday);
+    };
   }, []);
   const todayX = useMemo(() => dateLineX(originDate, today), [originDate, today]);
 
