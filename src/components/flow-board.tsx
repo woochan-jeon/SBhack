@@ -374,6 +374,7 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
     const startY = e.clientY;
     const origX = project.labelX;
     const origY = project.labelY;
+    const origTaskPositions = new Map(project.tasks.map((t) => [t.id, { x: t.x, y: t.y }]));
     let moved = false;
     function onMove(ev: MouseEvent) {
       const dx = (ev.clientX - startX) / zoom;
@@ -382,7 +383,17 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
       updateBoard((b) => ({
         ...b,
         projects: b.projects.map((p) =>
-          p.id !== project.id ? p : { ...p, labelX: origX + dx, labelY: origY + dy },
+          p.id !== project.id
+            ? p
+            : {
+                ...p,
+                labelX: origX + dx,
+                labelY: origY + dy,
+                tasks: p.tasks.map((t) => {
+                  const orig = origTaskPositions.get(t.id);
+                  return orig ? { ...t, x: orig.x + dx, y: orig.y + dy } : t;
+                }),
+              },
         ),
       }));
     }
