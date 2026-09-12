@@ -99,6 +99,16 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
 
   const { months, weeks, originDate } = useMemo(() => getTimelineSegments(), []);
 
+  /** Full-height day divider lines across the header's date range, so node placement can be checked by eye against the date grid. */
+  const dateDividerLines = useMemo(() => {
+    if (!weeks.length) return [];
+    const start = weeks[0].startX;
+    const end = weeks[weeks.length - 1].startX + weeks[weeks.length - 1].width;
+    const lines: number[] = [];
+    for (let x = start; x <= end; x += PIXELS_PER_DAY) lines.push(x);
+    return lines;
+  }, [weeks]);
+
   // The "오늘" line must track the real calendar date even if this tab is left
   // open across midnight, so it's kept in state and re-checked periodically
   // rather than computed once with `new Date()` at mount. Background tabs get
@@ -670,6 +680,22 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
             >
               {w.label}
             </div>
+          ))}
+
+          {/* Full-height date divider lines so node placement can be visually checked against the date grid. Day lines are faint; week-boundary lines (under the "N주" labels) are a bit stronger. */}
+          {dateDividerLines.map((x) => (
+            <div
+              key={`day-line-${x}`}
+              style={{ position: "absolute", left: x, top: -40, width: 1, height: 4000 }}
+              className="bg-gray-200"
+            />
+          ))}
+          {weeks.map((w, i) => (
+            <div
+              key={`w-line-${i}`}
+              style={{ position: "absolute", left: w.startX, top: -40, width: 1, height: 4000 }}
+              className="bg-gray-300"
+            />
           ))}
 
           {draggingTaskId &&
