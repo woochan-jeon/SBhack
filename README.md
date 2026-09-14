@@ -7,6 +7,7 @@ Slack 스타일 UI의 팀 업무관리 워크스페이스. 현재 여섯 개의 
 - **# 드라이브** — 연결된 구글 계정의 드라이브를 폴더째로 탐색
 - **# 회의록** — 드라이브의 "00. 회의록" 문서를 그대로 임베드해서 보여주는 채널
 - **# 회의 아카이브** — Meet Recordings의 Gemini 회의록을 안건·결정사항으로 자동 요약하는 채널
+- **# 마케팅** — 월별로 어떤 채널에 어떤 마케팅을 진행했고 비용을 얼마나 어떤 방식으로 지출했는지 기록하고, 큐텐/쇼피 등 프로젝트별 목표 예산 대비 실제 지출을 비교하는 채널
 - **# 플로우보드** — 프로젝트/작업을 확대·축소·드래그 가능한 무한 캔버스 위에 타임라인으로 배치해 보는 팀 공용 채널. 서버(Postgres)에 저장되어 누가 접속하든 같은 보드를 봅니다.
 
 기술 스택: Next.js 16 (App Router) · TypeScript · Tailwind CSS · Prisma 7 + Postgres (Vercel Postgres/Neon) · Google Calendar/Drive API
@@ -104,12 +105,13 @@ src/
       drive/          # 드라이브 채널
       minutes/        # 회의록 채널
       archive/        # 회의 아카이브 채널
+      marketing/      # 마케팅 채널
       flowboard/      # 플로우보드 채널 (localStorage 전용, DB 미사용)
     api/calendar/     구글 OAuth 콜백 라우트
     api/slack/        슬랙 OAuth 콜백 라우트
   components/          Sidebar, 채널 헤더, 할일 보드, 캘린더 아젠다, 플로우보드 캔버스 등 UI
   lib/                 Prisma 클라이언트, 구글 캘린더/드라이브 연동, 슬랙 연동, 회의 요약 로직, 플로우보드 로컬 저장 로직
-prisma/schema.prisma   DB 스키마 (Task, Category, CalendarConnection, SlackConnection, MeetingSummary 등) — 플로우보드 데이터는 여기 포함되지 않음(로컬 저장)
+prisma/schema.prisma   DB 스키마 (Task, Category, CalendarConnection, SlackConnection, MeetingSummary, MarketingProject/Budget/Expense 등) — 플로우보드 데이터는 여기 포함되지 않음(로컬 저장)
 ```
 
 ## 8. 자주 쓰는 명령어

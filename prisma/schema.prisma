@@ -129,6 +129,77 @@ model PasswordEntry {
   updatedAt DateTime @updatedAt
 }
 
+// A marketing budget owner for # 마케팅 — currently 큐텐/쇼피 (each run by a
+// different outsourced operator), but kept as a managed list like Category
+// since more storefronts/projects may be added later.
+model MarketingProject {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#0066cc")
+  createdAt DateTime @default(now())
+
+  budgets    MarketingBudget[]
+  expenses   MarketingExpense[]
+  categories MarketingCategory[]
+}
+
+// A spend category within one MarketingProject (e.g. 큐텐의 "광고비"/"인플루언서"),
+// so # 마케팅 can break down status/spend below the project level. Scoped to a
+// single project since 큐텐/쇼피 are run by different operators with different
+// category schemes.
+model MarketingCategory {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#0066cc")
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   MarketingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  expenses MarketingExpense[]
+
+  @@unique([projectId, name])
+}
+
+// One project's target spend for a given month, shown against actual
+// MarketingExpense totals in # 마케팅.
+model MarketingBudget {
+  id        String   @id @default(cuid())
+  year      Int
+  month     Int // 1-12
+  amount    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String
+  project   MarketingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, year, month])
+}
+
+// One marketing spend line item for # 마케팅 — which channel it ran on, what
+// was done, how much it cost, and how it was paid.
+model MarketingExpense {
+  id            String   @id @default(cuid())
+  date          DateTime
+  channel       String
+  description   String
+  amount        Int
+  paymentMethod String
+  note          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  projectId String
+  project   MarketingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category   MarketingCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([date])
+  @@index([projectId, date])
+}
+
 // Curated agenda/decision summaries for the # 회의 아카이브 channel, sourced from
 // the Gemini-generated meeting minutes in the Drive "Meet Recordings" folder.
 model MeetingSummary {
