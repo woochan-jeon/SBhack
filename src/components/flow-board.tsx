@@ -4,22 +4,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   bezierPath,
   createLink,
-  createMarker,
+  createNote,
   createProject,
   createTask,
-  dateAtX,
-  dateLineX,
-  dayStart,
-  formatShortDate,
-  getTimelineSegments,
-  parseDateInput,
   verticalBezierPath,
+  GRID_SIZE,
   MAX_ZOOM,
   MIN_ZOOM,
-  PIXELS_PER_DAY,
   STATUS_DOT_CLASS,
   STATUS_LABEL,
   type BoardState,
+  type Note,
   type Project,
   type Status,
   type Task,
@@ -30,6 +25,7 @@ const PROJECT_WIDTH = 150;
 const PROJECT_HEIGHT = 48;
 const TASK_WIDTH = 134;
 const TASK_HEIGHT = 45;
+const NOTE_WIDTH = 160;
 
 function clampZoom(z: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
@@ -45,9 +41,10 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
   const [newProjectName, setNewProjectName] = useState("");
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingProjectName, setEditingProjectName] = useState("");
-  const [showAddMarker, setShowAddMarker] = useState(false);
-  const [newMarkerDate, setNewMarkerDate] = useState("");
-  const [newMarkerLabel, setNewMarkerLabel] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState("");
+  const [showAddNote, setShowAddNote] = useState(false);
+  const [newNoteText, setNewNoteText] = useState("");
   const [linkDrag, setLinkDrag] = useState<{ fromTaskId: string; x: number; y: number } | null>(null);
   const [hoveredLinkId, setHoveredLinkId] = useState<string | null>(null);
   const [hoveredMergeId, setHoveredMergeId] = useState<string | null>(null);
@@ -97,53 +94,14 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
     return () => el.removeEventListener("wheel", handler);
   }, [applyZoom]);
 
-  const { months, weeks, originDate } = useMemo(() => getTimelineSegments(), []);
-
-  /** Full-height day divider lines across the header's date range, so node placement can be checked by eye against the date grid. */
-  const dateDividerLines = useMemo(() => {
-    if (!weeks.length) return [];
-    const start = weeks[0].startX;
-    const end = weeks[weeks.length - 1].startX + weeks[weeks.length - 1].width;
-    const lines: number[] = [];
-    for (let x = start; x <= end; x += PIXELS_PER_DAY) lines.push(x);
-    return lines;
-  }, [weeks]);
-
-  // The "오늘" line must track the real calendar date even if this tab is left
-  // open across midnight, so it's kept in state and re-checked periodically
-  // rather than computed once with `new Date()` at mount. Background tabs get
-  // their timers throttled by the browser, so the interval alone can lag for
-  // a while after the tab was hidden; recheck immediately on refocus too.
-  const [today, setToday] = useState(() => dayStart(new Date()));
-  useEffect(() => {
-    const recheckToday = () => {
-      setToday((prev) => {
-        const now = dayStart(new Date());
-        return now.getTime() === prev.getTime() ? prev : now;
-      });
-    };
-    const id = setInterval(recheckToday, 60_000);
-    document.addEventListener("visibilitychange", recheckToday);
-    window.addEventListener("focus", recheckToday);
-    return () => {
-      clearInterval(id);
-      document.removeEventListener("visibilitychange", recheckToday);
-      window.removeEventListener("focus", recheckToday);
-    };
-  }, []);
-  const todayX = useMemo(() => dateLineX(originDate, today), [originDate, today]);
-
-  const dayGridLines: number[] = [];
+  /** Faint alignment grid lines shown only while dragging a task, so drops can be checked by eye against the snap grid. */
+  const gridLines: number[] = [];
   if (draggingTaskId) {
     const worldStart = -pan.x / zoom;
     const worldEnd = (viewportWidth - pan.x) / zoom;
-    const firstLine = Math.floor(worldStart / PIXELS_PER_DAY) * PIXELS_PER_DAY;
-    for (let x = firstLine; x <= worldEnd; x += PIXELS_PER_DAY) dayGridLines.push(x);
+    const firstLine = Math.floor(worldStart / GRID_SIZE) * GRID_SIZE;
+    for (let x = firstLine; x <= worldEnd; x += GRID_SIZE) gridLines.push(x);
   }
-
-  const draggingTask = draggingTaskId
-    ? board.projects.flatMap((p) => p.tasks).find((t) => t.id === draggingTaskId) ?? null
-    : null;
 
   const linkDragFromTask = linkDrag
     ? board.projects.flatMap((p) => p.tasks).find((t) => t.id === linkDrag.fromTaskId) ?? null
@@ -270,7 +228,7 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
         if (!moved) setDraggingTaskId(task.id);
         moved = true;
       }
-      const snappedX = Math.round((origX + dx) / PIXELS_PER_DAY) * PIXELS_PER_DAY;
+      const snappedX = Math.round((origX + dx) / GRID_SIZE) * GRID_SIZE;
       updateBoard((b) => ({
         ...b,
         projects: b.projects.map((p) =>
@@ -456,14 +414,57 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
     }));
   }
 
-  function handleAddMarker(dateValue: string, label: string) {
-    if (!dateValue) return;
-    const marker = createMarker(dateValue, label.trim() || formatShortDate(parseDateInput(dateValue)));
-    updateBoard((b) => ({ ...b, markers: [...b.markers, marker] }));
+  function handleAddNote(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const rect = viewportRef.current?.getBoundingClientRect();
+    const width = rect?.width ?? viewportWidth;
+    const height = rect?.height ?? 600;
+    const x = (width / 2 - pan.x) / zoom - NOTE_WIDTH / 2;
+    const y = (height / 2 - pan.y) / zoom - 24;
+    const note = createNote(x, y, trimmed);
+    updateBoard((b) => ({ ...b, notes: [...b.notes, note] }));
   }
 
-  function handleDeleteMarker(markerId: string) {
-    updateBoard((b) => ({ ...b, markers: b.markers.filter((m) => m.id !== markerId) }));
+  function handleDeleteNote(noteId: string) {
+    updateBoard((b) => ({ ...b, notes: b.notes.filter((n) => n.id !== noteId) }));
+  }
+
+  function handleRenameNote(noteId: string, text: string) {
+    const trimmed = text.trim();
+    updateBoard((b) => ({
+      ...b,
+      notes: b.notes.map((n) => (n.id !== noteId ? n : { ...n, text: trimmed || n.text })),
+    }));
+  }
+
+  function handleNoteMouseDown(e: React.MouseEvent, note: Note) {
+    e.stopPropagation();
+    if (e.button !== 0) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const origX = note.x;
+    const origY = note.y;
+    let moved = false;
+    function onMove(ev: MouseEvent) {
+      const dx = (ev.clientX - startX) / zoom;
+      const dy = (ev.clientY - startY) / zoom;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+      updateBoard((b) => ({
+        ...b,
+        notes: b.notes.map((n) => (n.id !== note.id ? n : { ...n, x: origX + dx, y: origY + dy })),
+      }));
+    }
+    function onUp() {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      if (!moved) {
+        setEditingNoteId(note.id);
+        setEditingNoteText(note.text);
+      }
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
   }
 
   function handleDeleteTask(projectId: string, taskId: string) {
@@ -507,8 +508,14 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
     const rect = viewportRef.current?.getBoundingClientRect();
     const width = rect?.width ?? 800;
     const height = rect?.height ?? 600;
+    const centerX = board.projects.length
+      ? board.projects.reduce((sum, p) => sum + p.labelX, 0) / board.projects.length
+      : 0;
+    const centerY = board.projects.length
+      ? board.projects.reduce((sum, p) => sum + p.labelY, 0) / board.projects.length
+      : 0;
     setZoom(1);
-    setPan({ x: width / 2 - todayX, y: height / 2 - 200 });
+    setPan({ x: width / 2 - centerX, y: height / 2 - centerY });
   }
 
   return (
@@ -534,37 +541,30 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
             onClick={resetView}
             className="ml-1 rounded-md px-2 py-1 text-xs text-gray-600 hover:bg-gray-100"
           >
-            오늘로 이동
+            보기 초기화
           </button>
         </div>
 
         <div className="pointer-events-auto flex items-center gap-2">
-          {showAddMarker ? (
+          {showAddNote ? (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (newMarkerDate) {
-                  handleAddMarker(newMarkerDate, newMarkerLabel);
-                  setNewMarkerDate("");
-                  setNewMarkerLabel("");
-                  setShowAddMarker(false);
+                if (newNoteText.trim()) {
+                  handleAddNote(newNoteText);
+                  setNewNoteText("");
+                  setShowAddNote(false);
                 }
               }}
               className="flex items-center gap-1"
             >
               <input
-                type="date"
                 autoFocus
                 required
-                value={newMarkerDate}
-                onChange={(e) => setNewMarkerDate(e.target.value)}
-                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-[#7c3aed]"
-              />
-              <input
-                value={newMarkerLabel}
-                onChange={(e) => setNewMarkerLabel(e.target.value)}
-                placeholder="라벨 (예: 마감일)"
-                className="w-24 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#7c3aed]"
+                value={newNoteText}
+                onChange={(e) => setNewNoteText(e.target.value)}
+                placeholder="메모 (예: 예선서류마감)"
+                className="w-36 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#7c3aed]"
               />
               <button
                 type="submit"
@@ -575,9 +575,8 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
               <button
                 type="button"
                 onClick={() => {
-                  setShowAddMarker(false);
-                  setNewMarkerDate("");
-                  setNewMarkerLabel("");
+                  setShowAddNote(false);
+                  setNewNoteText("");
                 }}
                 className="rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
               >
@@ -586,12 +585,12 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
             </form>
           ) : (
             <button
-              onClick={() => setShowAddMarker(true)}
-              title="날짜 마커 추가"
-              aria-label="날짜 마커 추가"
+              onClick={() => setShowAddNote(true)}
+              title="메모 추가"
+              aria-label="메모 추가"
               className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50"
             >
-              🚩
+              🗒️
             </button>
           )}
           {showAddProject ? (
@@ -663,96 +662,57 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
             transformOrigin: "0 0",
           }}
         >
-          {months.map((m) => (
-            <div
-              key={`m-${m.startX}`}
-              style={{ position: "absolute", left: m.startX, top: 0, width: m.width }}
-              className="border-l border-gray-200 pl-2 pt-1 text-base font-semibold text-gray-700"
-            >
-              {m.label}
-            </div>
-          ))}
-          {weeks.map((w, i) => (
-            <div
-              key={`w-${i}`}
-              style={{ position: "absolute", left: w.startX, top: 28, width: w.width }}
-              className="border-l border-gray-100 pl-1 text-sm text-gray-400"
-            >
-              {w.label}
-            </div>
-          ))}
-
-          {/* Full-height date divider lines so node placement can be visually checked against the date grid. Day lines are faint; week-boundary lines (under the "N주" labels) are a bit stronger. */}
-          {dateDividerLines.map((x) => (
-            <div
-              key={`day-line-${x}`}
-              style={{ position: "absolute", left: x, top: -40, width: 1, height: 4000 }}
-              className="bg-gray-200"
-            />
-          ))}
-          {weeks.map((w, i) => (
-            <div
-              key={`w-line-${i}`}
-              style={{ position: "absolute", left: w.startX, top: -40, width: 1, height: 4000 }}
-              className="bg-gray-300"
-            />
-          ))}
-
           {draggingTaskId &&
-            dayGridLines.map((x) => (
+            gridLines.map((x) => (
               <div
-                key={`day-${x}`}
+                key={`grid-${x}`}
                 style={{ position: "absolute", left: x, top: -40, width: 1, height: 4000 }}
                 className="bg-gray-200"
               />
             ))}
 
-          {draggingTask && (
-            <div
-              style={{
-                position: "absolute",
-                left: draggingTask.x + TASK_WIDTH / 2,
-                top: draggingTask.y - 34,
-                transform: "translateX(-50%)",
-              }}
-              className="whitespace-nowrap rounded-full bg-gray-900 px-2.5 py-1 text-xs font-medium text-white shadow-lg"
-            >
-              {formatShortDate(dateAtX(originDate, draggingTask.x))}
-            </div>
-          )}
-
-          <div
-            style={{ position: "absolute", left: todayX, top: -40, width: 1, height: 2000 }}
-            className="bg-rose-500/70"
-          />
-          <div
-            style={{ position: "absolute", left: todayX + 4, top: -38 }}
-            className="text-sm font-semibold text-rose-600"
-          >
-            오늘
-          </div>
-
-          {board.markers.map((marker) => {
-            const x = dateLineX(originDate, parseDateInput(marker.date));
-            return (
-              <div key={marker.id} className="group" style={{ position: "absolute", left: x, top: -40 }}>
-                <div style={{ position: "absolute", top: 0, width: 1, height: 2000 }} className="bg-indigo-400/70" />
-                <div className="absolute left-1 top-0 flex items-center gap-1 whitespace-nowrap">
-                  <span className="rounded-full bg-indigo-500 px-2 py-0.5 text-xs font-medium text-white">
-                    {marker.label}
-                  </span>
-                  <button
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={() => handleDeleteMarker(marker.id)}
-                    className="hidden h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] text-gray-400 hover:text-red-600 group-hover:flex"
-                    title="마커 삭제"
-                  >
-                    ×
-                  </button>
-                </div>
+          {board.notes.map((note) =>
+            editingNoteId === note.id ? (
+              <input
+                key={note.id}
+                autoFocus
+                value={editingNoteText}
+                onChange={(e) => setEditingNoteText(e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onBlur={() => {
+                  handleRenameNote(note.id, editingNoteText);
+                  setEditingNoteId(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleRenameNote(note.id, editingNoteText);
+                    setEditingNoteId(null);
+                  } else if (e.key === "Escape") {
+                    setEditingNoteId(null);
+                  }
+                }}
+                style={{ position: "absolute", left: note.x, top: note.y, width: NOTE_WIDTH }}
+                className="cursor-text rounded-full border border-indigo-400 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 outline-none"
+              />
+            ) : (
+              <div
+                key={note.id}
+                onMouseDown={(e) => handleNoteMouseDown(e, note)}
+                style={{ position: "absolute", left: note.x, top: note.y, width: NOTE_WIDTH }}
+                className="group relative flex cursor-grab select-none items-center justify-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 shadow-sm"
+              >
+                <button
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={() => handleDeleteNote(note.id)}
+                  className="absolute -right-1.5 -top-1.5 hidden h-4 w-4 items-center justify-center rounded-full border border-gray-300 bg-white text-[10px] text-gray-400 shadow-sm hover:border-red-300 hover:text-red-600 group-hover:flex"
+                  title="메모 삭제"
+                >
+                  ×
+                </button>
+                <span className="truncate">{note.text}</span>
               </div>
-            );
-          })}
+            ),
+          )}
 
           <svg className="absolute left-0 top-0 overflow-visible" width={1} height={1}>
             {connections.map((c) => (
@@ -913,7 +873,7 @@ export default function FlowBoard({ initialState }: { initialState: BoardState }
                 </div>
                 <div className="flex items-center gap-2 text-gray-500">
                   {task.assignee && <span className="truncate">{task.assignee}</span>}
-                  {task.dateRange && <span className="truncate">· {task.dateRange}</span>}
+                  {task.note && <span className="truncate">· {task.note}</span>}
                 </div>
                 <div
                   onMouseDown={(e) => handleLinkHandleMouseDown(e, task)}
@@ -1035,11 +995,12 @@ function TaskDetailPanel({
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-gray-400">일정</span>
+          <span className="text-xs text-gray-400">메모</span>
           <input
-            value={task.dateRange}
-            onChange={(e) => onChange({ dateRange: e.target.value })}
-            className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc]"
+            value={task.note}
+            onChange={(e) => onChange({ note: e.target.value })}
+            placeholder="예: 우선순위 높음"
+            className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#0066cc]"
           />
         </label>
 

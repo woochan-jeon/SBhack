@@ -7,10 +7,10 @@ Slack 스타일 UI의 팀 업무관리 워크스페이스. 현재 여섯 개의 
 - **# 드라이브** — 연결된 구글 계정의 드라이브를 폴더째로 탐색
 - **# 회의록** — 드라이브의 "00. 회의록" 문서를 그대로 임베드해서 보여주는 채널
 - **# 회의 아카이브** — Meet Recordings의 Gemini 회의록을 안건·결정사항으로 자동 요약하는 채널
-- **# 마케팅** — 월별로 어떤 채널에 어떤 마케팅을 진행했고 비용을 얼마나 어떤 방식으로 지출했는지 기록하고, 큐텐/쇼피 등 프로젝트별 목표 예산 대비 실제 지출을 비교하는 채널
+- **# 마케팅** — 월별로 어떤 채널에 어떤 마케팅을 진행했고 비용을 얼마나 어떤 방식으로 지출했는지 기록하고, 큐텐/쇼피 등 프로젝트별 목표 예산 대비 실제 지출을 비교하는 채널. 구글 시트와 양방향으로 동기화됩니다(3단계 참고).
 - **# 플로우보드** — 프로젝트/작업을 확대·축소·드래그 가능한 무한 캔버스 위에 타임라인으로 배치해 보는 팀 공용 채널. 서버(Postgres)에 저장되어 누가 접속하든 같은 보드를 봅니다.
 
-기술 스택: Next.js 16 (App Router) · TypeScript · Tailwind CSS · Prisma 7 + Postgres (Vercel Postgres/Neon) · Google Calendar/Drive API
+기술 스택: Next.js 16 (App Router) · TypeScript · Tailwind CSS · Prisma 7 + Postgres (Vercel Postgres/Neon) · Google Calendar/Drive/Sheets API
 
 계정/로그인이 없는 완전 공개 워크스페이스입니다 — 링크만 있으면 누구나 모든 채널에 접속할 수 있습니다.
 
@@ -47,7 +47,7 @@ cp .env.example .env
 팀 캘린더 채널은 누군가 한 번 자신의 구글 캘린더를 연결하면, 그 이후로는 링크에 접속하는 모두가 그 일정을 볼 수 있는 구조입니다. 연동하려면 Google Cloud Console에서 OAuth 클라이언트를 직접 발급받아야 합니다.
 
 1. [Google Cloud Console](https://console.cloud.google.com/)에 접속해 새 프로젝트를 만들거나 기존 프로젝트를 선택합니다.
-2. 좌측 메뉴 **APIs & Services → Library**에서 `Google Calendar API`를 검색해 **Enable(사용 설정)** 합니다.
+2. 좌측 메뉴 **APIs & Services → Library**에서 `Google Calendar API`, `Google Drive API`, `Google Sheets API`를 각각 검색해 **Enable(사용 설정)** 합니다.
 3. **APIs & Services → OAuth consent screen**으로 이동해 동의 화면을 설정합니다.
    - User Type은 팀 규모가 작다면 `External` + 테스트 사용자로 등록하거나, Google Workspace 조직이라면 `Internal` 선택.
    - 앱 이름, 지원 이메일 등 필수 항목만 입력하면 됩니다.
@@ -62,6 +62,8 @@ cp .env.example .env
 7. 이후부터는 링크에 접속하는 누구나 연결된 캘린더의 예정된 일정을 조회할 수 있습니다. 조회만 가능하며(읽기 전용 권한), 이 앱에서 일정을 생성/수정하지는 않습니다.
 
 > 연결을 끊고 싶다면 캘린더 채널 상단의 **연결 해제** 버튼을 사용하세요. 로그인이 없으므로 접속하는 누구나 연결/해제할 수 있습니다.
+
+> **# 마케팅** 채널의 구글 시트 동기화도 이 연결을 그대로 사용합니다. 시트 접근 권한(`spreadsheets` 스코프)이 추가되기 전에 이미 연결된 계정이라면, **# 마케팅** 채널 상단의 **구글 계정 다시 연결** 버튼으로 재연결해 시트 접근을 추가로 동의해 주세요. 첫 동기화 시 "WONDER 마케팅 채널"이라는 이름의 새 스프레드시트가 연결된 계정의 드라이브에 자동으로 생성됩니다. 시트에서 직접 입력/수정한 내용은 다음 동기화 때 앱에 반영되지만, 시트에서 행을 지우는 것만으로는 삭제되지 않습니다(다음 동기화 때 다시 채워짐) — 삭제는 앱의 삭제 버튼으로만 가능합니다.
 
 ## 4. 회의 아카이브 자동 요약
 

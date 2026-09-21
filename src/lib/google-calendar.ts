@@ -2,14 +2,17 @@ import "server-only";
 import { google } from "googleapis";
 import { fetch as undiciFetch } from "undici";
 import { prisma } from "@/lib/prisma";
+import { toDateKey } from "@/lib/calendar-grid";
 
 // Full calendar access (not just readonly) so the team can pick which of the
 // connected account's calendars to use, and create events from this app.
 // Also includes read-only Drive access so the team can browse the connected
-// account's Drive from the # 드라이브 channel.
+// account's Drive from the # 드라이브 channel, and full Sheets access so the
+// # 마케팅 channel can create/sync its Google Sheet.
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar",
   "https://www.googleapis.com/auth/drive.readonly",
+  "https://www.googleapis.com/auth/spreadsheets",
   "https://www.googleapis.com/auth/userinfo.email",
 ];
 
@@ -247,7 +250,7 @@ export async function createEvent(input: {
 function nextDay(dateStr: string) {
   const d = new Date(`${dateStr}T00:00:00`);
   d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
+  return toDateKey(d);
 }
 
 export async function listEventsInRange(timeMin: Date, timeMax: Date): Promise<CalendarEvent[]> {

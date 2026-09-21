@@ -3,8 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { syncMarketingSheet } from "@/lib/google-sheets";
 
 export type ActionState = { error?: string };
+
+// Best-effort push to the team's marketing Google Sheet after a DB change.
+// Never lets a sheet sync problem (not connected, missing scope, API hiccup)
+// fail the actual mutation the user just made.
+async function syncMarketingSheetQuietly() {
+  await syncMarketingSheet().catch((err) => {
+    console.error("Marketing sheet sync failed:", err);
+  });
+}
 
 const createProjectSchema = z.object({
   name: z.string().trim().min(1, "프로젝트 이름을 입력해 주세요").max(30),
@@ -29,12 +39,14 @@ export async function createProjectAction(
   if (existing) return { error: "이미 있는 프로젝트 이름입니다" };
 
   await prisma.marketingProject.create({ data: { name, color } });
+  await syncMarketingSheetQuietly();
   revalidatePath("/marketing");
   return {};
 }
 
 export async function deleteProjectAction(projectId: string) {
   await prisma.marketingProject.delete({ where: { id: projectId } });
+  await syncMarketingSheetQuietly();
   revalidatePath("/marketing");
 }
 
@@ -65,17 +77,20 @@ export async function createCategoryAction(
   if (existing) return { error: "이미 있는 카테고리 이름입니다" };
 
   await prisma.marketingCategory.create({ data: { projectId, name, color } });
+  await syncMarketingSheetQuietly();
   revalidatePath("/marketing");
   return {};
 }
 
 export async function deleteCategoryAction(categoryId: string) {
   await prisma.marketingCategory.delete({ where: { id: categoryId } });
+  await syncMarketingSheetQuietly();
   revalidatePath("/marketing");
 }
 
 const setBudgetSchema = z.object({
   projectId: z.string().min(1),
+  categoryId: z.string().trim().optional(),
   year: z.coerce.number().int().min(2000).max(2100),
   month: z.coerce.number().int().min(1).max(12),
   amount: z.coerce.number().int().min(0, "0 이상의 금액을 입력해 주세요"),
@@ -84,18 +99,26 @@ const setBudgetSchema = z.object({
 export async function setBudgetAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = setBudgetSchema.safeParse({
     projectId: formData.get("projectId"),
+    categoryId: formData.get("categoryId") || undefined,
     year: formData.get("year"),
     month: formData.get("month"),
     amount: formData.get("amount"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요" };
-  const { projectId, year, month, amount } = parsed.data;
+  const { projectId, categoryId, year, month, amount } = parsed.data;
+  const category = categoryId || null;
 
-  await prisma.marketingBudget.upsert({
-    where: { projectId_year_month: { projectId, year, month } },
-    create: { projectId, year, month, amount },
-    update: { amount },
+  // Prisma's compound-unique lookup can't take null for a nullable field, so
+  // upsert on (projectId, categoryId, year, month) manually.
+  const existing = await prisma.marketingBudget.findFirst({
+    where: { projectId, categoryId: category, year, month },
   });
+  if (existing) {
+    await prisma.marketingBudget.update({ where: { id: existing.id }, data: { amount } });
+  } else {
+    await prisma.marketingBudget.create({ data: { projectId, categoryId: category, year, month, amount } });
+  }
+  await syncMarketingSheetQuietly();
   revalidatePath("/marketing");
   return {};
 }
@@ -140,6 +163,7 @@ export async function createExpenseAction(
       note: note || null,
     },
   });
+  await syncMarketingSheetQuietly();
   revalidatePath("/marketing");
   return {};
 }
@@ -179,11 +203,13 @@ export async function updateExpenseAction(
     },
   });
   if (result.count === 0) return { error: "지출 항목을 찾을 수 없습니다" };
+  await syncMarketingSheetQuietly();
   revalidatePath("/marketing");
   return {};
 }
 
 export async function deleteExpenseAction(expenseId: string) {
   await prisma.marketingExpense.deleteMany({ where: { id: expenseId } });
+  await syncMarketingSheetQuietly();
   revalidatePath("/marketing");
 }

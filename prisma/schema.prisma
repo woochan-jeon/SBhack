@@ -57,6 +57,8 @@ model CalendarConnection {
   // Drive folder the # 드라이브 channel is scoped to. Null means "My Drive" root.
   driveRootFolderId   String?
   driveRootFolderName String?
+  // Spreadsheet the # 마케팅 channel syncs to. Created automatically on first sync.
+  marketingSheetId String?
   accessToken  String
   refreshToken String
   expiryDate   DateTime
@@ -115,6 +117,35 @@ model WorkLogEntry {
   @@index([memberId, date])
 }
 
+// A managed category (e.g. JM/Q10/창동) # 일정 entries are filed under —
+// same idea as WorkLogMember, but for locations/teams instead of people, and
+// freely addable/removable rather than picked from a fixed roster.
+model ScheduleCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  entries ScheduleEntry[]
+}
+
+// One day's freeform note filed under one category in # 일정, mirroring #
+// 업무일지's format exactly (검정 = done, 파랑 = planned) but keyed by
+// category instead of by person.
+model ScheduleEntry {
+  id        String        @id @default(cuid())
+  date      DateTime
+  content   String
+  status    WorkLogStatus @default(PLANNED)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  categoryId String
+  category   ScheduleCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@index([categoryId, date])
+}
+
 // Shared team credentials for # 비밀번호. Gated behind a passphrase at the page
 // level (see src/lib/password-gate.ts) since the workspace itself has no login.
 model PasswordEntry {
@@ -157,12 +188,16 @@ model MarketingCategory {
   project   MarketingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   expenses MarketingExpense[]
+  budgets  MarketingBudget[]
 
   @@unique([projectId, name])
 }
 
-// One project's target spend for a given month, shown against actual
-// MarketingExpense totals in # 마케팅.
+// One project's (or, optionally, one category's) target spend for a given
+// month, shown against actual MarketingExpense totals in # 마케팅. A row with
+// categoryId = null is the project-wide target; a row with categoryId set is
+// a target scoped to that category, so budgets can be broken down the same
+// way expenses already are.
 model MarketingBudget {
   id        String   @id @default(cuid())
   year      Int
@@ -174,7 +209,10 @@ model MarketingBudget {
   projectId String
   project   MarketingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@unique([projectId, year, month])
+  categoryId String?
+  category   MarketingCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, categoryId, year, month])
 }
 
 // One marketing spend line item for # 마케팅 — which channel it ran on, what
@@ -213,3 +251,4 @@ model MeetingSummary {
   sourceUrl   String?
   createdAt   DateTime @default(now())
 }
+

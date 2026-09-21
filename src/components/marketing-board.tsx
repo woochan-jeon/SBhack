@@ -16,7 +16,7 @@ import {
 
 type ProjectVM = { id: string; name: string; color: string };
 type CategoryVM = { id: string; name: string; color: string; projectId: string };
-type BudgetVM = { projectId: string; amount: number };
+type BudgetVM = { projectId: string; categoryId: string | null; amount: number };
 type ExpenseVM = {
   id: string;
   date: string;
@@ -88,7 +88,13 @@ export default function MarketingBoard({
 
   const budgetByProject = useMemo(() => {
     const map = new Map<string, number>();
-    for (const b of budgets) map.set(b.projectId, b.amount);
+    for (const b of budgets) if (b.categoryId === null) map.set(b.projectId, b.amount);
+    return map;
+  }, [budgets]);
+
+  const budgetByCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const b of budgets) if (b.categoryId !== null) map.set(b.categoryId, b.amount);
     return map;
   }, [budgets]);
 
@@ -98,7 +104,7 @@ export default function MarketingBoard({
     return map;
   }, [expenses]);
 
-  const totalBudget = budgets.reduce((sum, b) => sum + b.amount, 0);
+  const totalBudget = Array.from(budgetByProject.values()).reduce((sum, amount) => sum + amount, 0);
   const totalSpend = expenses.reduce((sum, e) => sum + e.amount, 0);
 
   const projectExpenses = activeProjectId
@@ -183,6 +189,7 @@ export default function MarketingBoard({
             spend={spendByProject.get(p.id) ?? 0}
             categories={categories}
             spendByCategory={spendByCategory}
+            budgetByCategory={budgetByCategory}
             active={activeProjectId === p.id}
             onClick={() => selectProject(p.id)}
           />
@@ -192,7 +199,7 @@ export default function MarketingBoard({
       {activeProjectId && (
         <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-medium text-gray-500">카테고리별 지출</p>
+            <p className="text-xs font-medium text-gray-500">카테고리별 예산 · 지출</p>
             <button
               type="button"
               onClick={() => setManagingCategories((v) => !v)}
@@ -201,28 +208,32 @@ export default function MarketingBoard({
               카테고리 관리
             </button>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            <CategoryChip
-              label="전체"
-              color="#111827"
-              amount={projectExpenses.reduce((sum, e) => sum + e.amount, 0)}
-              active={activeCategoryId === null}
-              onClick={() => setActiveCategoryId(null)}
-            />
-            {categoriesForActiveProject.map((c) => (
-              <CategoryChip
-                key={c.id}
-                label={c.name}
-                color={c.color}
-                amount={spendByCategory.get(c.id) ?? 0}
-                active={activeCategoryId === c.id}
-                onClick={() => setActiveCategoryId(c.id)}
-              />
-            ))}
-            {categoriesForActiveProject.length === 0 && (
-              <p className="text-xs text-gray-400">등록된 카테고리가 없습니다.</p>
-            )}
-          </div>
+          <CategoryChip
+            label="전체"
+            color="#111827"
+            amount={projectExpenses.reduce((sum, e) => sum + e.amount, 0)}
+            active={activeCategoryId === null}
+            onClick={() => setActiveCategoryId(null)}
+          />
+          {categoriesForActiveProject.length > 0 ? (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {categoriesForActiveProject.map((c) => (
+                <CategorySummary
+                  key={c.id}
+                  category={c}
+                  projectId={activeProjectId}
+                  year={year}
+                  month={month}
+                  budget={budgetByCategory.get(c.id) ?? null}
+                  spend={spendByCategory.get(c.id) ?? 0}
+                  active={activeCategoryId === c.id}
+                  onClick={() => setActiveCategoryId(c.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">등록된 카테고리가 없습니다.</p>
+          )}
           {managingCategories && (
             <CategoryManagePanel projectId={activeProjectId} categories={categoriesForActiveProject} />
           )}
@@ -335,6 +346,7 @@ function ProjectSummary({
   spend,
   categories,
   spendByCategory,
+  budgetByCategory,
   active,
   onClick,
 }: {
@@ -345,6 +357,7 @@ function ProjectSummary({
   spend: number;
   categories: CategoryVM[];
   spendByCategory: Map<string, number>;
+  budgetByCategory: Map<string, number>;
   active: boolean;
   onClick: () => void;
 }) {
@@ -363,21 +376,30 @@ function ProjectSummary({
       >
         {projectCategories.length > 0 && (
           <div className="flex flex-col gap-0.5 border-t border-gray-100 pt-1.5">
-            {projectCategories.map((c) => (
-              <div key={c.id} className="flex items-center justify-between text-xs text-gray-500">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c.color }} aria-hidden />
-                  {c.name}
-                </span>
-                <span>{formatWon(spendByCategory.get(c.id) ?? 0)}</span>
-              </div>
-            ))}
+            {projectCategories.map((c) => {
+              const categoryBudget = budgetByCategory.get(c.id) ?? 0;
+              return (
+                <div key={c.id} className="flex items-center justify-between text-xs text-gray-500">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c.color }} aria-hidden />
+                    {c.name}
+                  </span>
+                  <span>
+                    {formatWon(spendByCategory.get(c.id) ?? 0)}
+                    {categoryBudget > 0 && (
+                      <span className="text-gray-400"> / {formatWon(categoryBudget)}</span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </SummaryCard>
       {editingBudget ? (
         <BudgetForm
           projectId={project.id}
+          categoryId={null}
           year={year}
           month={month}
           defaultAmount={budget}
@@ -398,12 +420,14 @@ function ProjectSummary({
 
 function BudgetForm({
   projectId,
+  categoryId,
   year,
   month,
   defaultAmount,
   onDone,
 }: {
   projectId: string;
+  categoryId: string | null;
   year: number;
   month: number;
   defaultAmount: number | null;
@@ -418,6 +442,7 @@ function BudgetForm({
   return (
     <form action={formAction} className="flex items-center gap-1.5">
       <input type="hidden" name="projectId" value={projectId} />
+      {categoryId && <input type="hidden" name="categoryId" value={categoryId} />}
       <input type="hidden" name="year" value={year} />
       <input type="hidden" name="month" value={month} />
       <input
@@ -443,6 +468,52 @@ function BudgetForm({
       </button>
       {state.error && <p className="text-xs text-red-600">{state.error}</p>}
     </form>
+  );
+}
+
+function CategorySummary({
+  category,
+  projectId,
+  year,
+  month,
+  budget,
+  spend,
+  active,
+  onClick,
+}: {
+  category: CategoryVM;
+  projectId: string;
+  year: number;
+  month: number;
+  budget: number | null;
+  spend: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const [editingBudget, setEditingBudget] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <SummaryCard label={category.name} color={category.color} budget={budget ?? 0} spend={spend} active={active} onClick={onClick} />
+      {editingBudget ? (
+        <BudgetForm
+          projectId={projectId}
+          categoryId={category.id}
+          year={year}
+          month={month}
+          defaultAmount={budget}
+          onDone={() => setEditingBudget(false)}
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setEditingBudget(true)}
+          className="self-start px-1 text-xs text-gray-500 underline decoration-dotted hover:text-gray-700"
+        >
+          {budget !== null ? "목표 예산 수정" : "목표 예산 설정"}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -560,7 +631,11 @@ function CategoryManagePanel({ projectId, categories }: { projectId: string; cat
             <button
               type="button"
               onClick={() => {
-                if (confirm(`"${c.name}" 카테고리를 삭제할까요? 관련 지출 기록의 카테고리는 비워집니다.`)) {
+                if (
+                  confirm(
+                    `"${c.name}" 카테고리를 삭제할까요? 관련 지출 기록의 카테고리는 비워지고, 이 카테고리에 설정된 예산은 함께 삭제됩니다.`,
+                  )
+                ) {
                   startTransition(() => deleteCategoryAction(c.id));
                 }
               }}

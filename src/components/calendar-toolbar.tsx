@@ -2,6 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { createEventAction, selectCalendarsAction, type ActionState } from "@/app/(app)/calendar/actions";
+import { toDateKey } from "@/lib/calendar-grid";
 
 type CalendarListItem = { id: string; name: string; primary: boolean };
 
@@ -101,7 +102,7 @@ function NewEventForm({ onDone }: { onDone: () => void }) {
     return result;
   }, initialState);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toDateKey(new Date());
 
   return (
     <form
