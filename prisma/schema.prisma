@@ -123,21 +123,22 @@ model WorkLogEntry {
 model ScheduleCategory {
   id        String   @id @default(cuid())
   name      String   @unique
+  color     String   @default("#0066cc")
   createdAt DateTime @default(now())
 
   entries ScheduleEntry[]
 }
 
-// One day's freeform note filed under one category in # 일정, mirroring #
-// 업무일지's format exactly (검정 = done, 파랑 = planned) but keyed by
-// category instead of by person.
+// One item in # 일정, rendered as a continuous bar from `date` to `endDate`
+// (same value for a single-day item) and colored by its category rather than
+// by a done/planned status.
 model ScheduleEntry {
-  id        String        @id @default(cuid())
+  id        String   @id @default(cuid())
   date      DateTime
+  endDate   DateTime
   content   String
-  status    WorkLogStatus @default(PLANNED)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   categoryId String
   category   ScheduleCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)

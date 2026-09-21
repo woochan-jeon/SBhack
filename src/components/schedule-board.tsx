@@ -12,24 +12,35 @@ import {
 } from "@/app/(app)/schedule/actions";
 import { toDateKey } from "@/lib/calendar-grid";
 
-type EntryStatus = "DONE" | "PLANNED";
-
 interface EntryVM {
   id: string;
-  date: string;
+  date: string; // start, YYYY-MM-DD
+  endDate: string; // end, YYYY-MM-DD (same as date for a single-day item)
   content: string;
-  status: EntryStatus;
   categoryId: string;
   categoryName: string;
+  categoryColor: string;
 }
 
 interface CategoryVM {
   id: string;
   name: string;
+  color: string;
 }
 
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
-const CURRENT_CATEGORY_KEY = "wonder-schedule-current-category";
+const CATEGORY_COLOR_SWATCHES = [
+  "#0066cc",
+  "#059669",
+  "#d97706",
+  "#dc2626",
+  "#7c3aed",
+  "#0891b2",
+  "#db2777",
+  "#65a30d",
+];
+const BAR_HEIGHT = 22;
+const BAR_GAP = 4;
 const initialState: ActionState = {};
 
 export default function ScheduleBoard({
@@ -53,37 +64,11 @@ export default function ScheduleBoard({
   entries: EntryVM[];
   categories: CategoryVM[];
 }) {
-  // Read once on mount (this component is client-only, see
-  // schedule-board-loader.tsx, so `window` is always available here). A
-  // stale id whose category was since deleted is filtered out below rather
-  // than cleared eagerly in an effect.
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(() =>
-    window.localStorage.getItem(CURRENT_CATEGORY_KEY),
-  );
+  const [managingCategories, setManagingCategories] = useState(false);
   const [addingDate, setAddingDate] = useState<string | null>(null);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
 
-  const currentCategoryId =
-    selectedCategoryId && categories.some((c) => c.id === selectedCategoryId) ? selectedCategoryId : null;
-
-  function selectCategory(id: string | null) {
-    setSelectedCategoryId(id);
-    if (id) window.localStorage.setItem(CURRENT_CATEGORY_KEY, id);
-    else window.localStorage.removeItem(CURRENT_CATEGORY_KEY);
-  }
-
-  const entriesByDate = useMemo(() => {
-    const map = new Map<string, EntryVM[]>();
-    for (const entry of entries) {
-      const list = map.get(entry.date);
-      if (list) list.push(entry);
-      else map.set(entry.date, [entry]);
-    }
-    return map;
-  }, [entries]);
-
   const todayKey = toDateKey(new Date());
-  const currentCategory = categories.find((c) => c.id === currentCategoryId) ?? null;
   const editingEntry = editingEntryId ? entries.find((e) => e.id === editingEntryId) ?? null : null;
 
   return (
@@ -129,18 +114,24 @@ export default function ScheduleBoard({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-        <CategorySwitcher categories={categories} currentCategoryId={currentCategoryId} onSelect={selectCategory} />
-        <div className="flex items-center gap-3 text-xs text-gray-600">
-          <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-gray-900" aria-hidden />
-            완료된 일정
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-blue-600" aria-hidden />
-            진행 예정 일정
-          </span>
+        <div className="flex flex-wrap items-center gap-3">
+          {categories.map((c) => (
+            <span key={c.id} className="flex items-center gap-1.5 text-xs text-gray-600">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.color }} aria-hidden />
+              {c.name}
+            </span>
+          ))}
         </div>
+        <button
+          type="button"
+          onClick={() => setManagingCategories((v) => !v)}
+          className="text-xs text-gray-500 underline decoration-dotted hover:text-gray-700"
+        >
+          카테고리 관리
+        </button>
       </div>
+
+      {managingCategories && <CategoryManagePanel categories={categories} />}
 
       <div className="hidden overflow-hidden rounded-lg border border-gray-200 md:block">
         <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
@@ -156,25 +147,16 @@ export default function ScheduleBoard({
           ))}
         </div>
         {weeks.map((week) => (
-          <div key={toDateKey(week[0])} className="grid grid-cols-7 border-b border-gray-100 last:border-b-0">
-            {week.map((day) => {
-              const key = toDateKey(day);
-              const inMonth = month === null || day.getMonth() === month;
-              return (
-                <DayCell
-                  key={key}
-                  day={day}
-                  inMonth={inMonth}
-                  isToday={key === todayKey}
-                  entries={entriesByDate.get(key) ?? []}
-                  canAdd={currentCategoryId !== null}
-                  minHeight={view === "week" ? "12rem" : "7rem"}
-                  onAdd={() => setAddingDate(key)}
-                  onEditEntry={setEditingEntryId}
-                />
-              );
-            })}
-          </div>
+          <WeekRow
+            key={toDateKey(week[0])}
+            week={week}
+            month={month}
+            todayKey={todayKey}
+            entries={entries}
+            minHeight={view === "week" ? 160 : 80}
+            onAddDate={setAddingDate}
+            onEditEntry={setEditingEntryId}
+          />
         ))}
       </div>
 
@@ -182,13 +164,13 @@ export default function ScheduleBoard({
         {weeks.flat().map((day) => {
           const key = toDateKey(day);
           const isToday = key === todayKey;
+          const dayEntries = entries.filter((e) => e.date <= key && key <= e.endDate);
           return (
             <MobileDayAccordion
               key={key}
               day={day}
               isToday={isToday}
-              entries={entriesByDate.get(key) ?? []}
-              canAdd={currentCategoryId !== null}
+              entries={dayEntries}
               defaultOpen={isToday}
               onAdd={() => setAddingDate(key)}
               onEditEntry={setEditingEntryId}
@@ -197,60 +179,139 @@ export default function ScheduleBoard({
         })}
       </div>
 
-      {addingDate && currentCategory && (
-        <AddEntryModal date={addingDate} category={currentCategory} onClose={() => setAddingDate(null)} />
+      {addingDate && (
+        <AddEntryModal date={addingDate} categories={categories} onClose={() => setAddingDate(null)} />
       )}
 
-      {editingEntry && <EditEntryModal entry={editingEntry} onClose={() => setEditingEntryId(null)} />}
+      {editingEntry && (
+        <EditEntryModal entry={editingEntry} categories={categories} onClose={() => setEditingEntryId(null)} />
+      )}
     </div>
   );
 }
 
-function DayCell({
-  day,
-  inMonth,
-  isToday,
+type BarSegment = {
+  entry: EntryVM;
+  colStart: number;
+  colSpan: number;
+  isStart: boolean;
+  isEnd: boolean;
+  lane: number;
+};
+
+/** Greedy per-week lane packing so overlapping bars stack instead of collide (independent per week row, like a month-view calendar). */
+function layoutWeekBars(week: Date[], entries: EntryVM[]): { segments: BarSegment[]; laneCount: number } {
+  const weekKeys = week.map(toDateKey);
+  const weekStartKey = weekKeys[0];
+  const weekEndKey = weekKeys[6];
+
+  const raw = entries
+    .map((entry) => {
+      if (entry.endDate < weekStartKey || entry.date > weekEndKey) return null;
+      const segStartKey = entry.date < weekStartKey ? weekStartKey : entry.date;
+      const segEndKey = entry.endDate > weekEndKey ? weekEndKey : entry.endDate;
+      const colStart = weekKeys.indexOf(segStartKey);
+      const colEnd = weekKeys.indexOf(segEndKey);
+      return {
+        entry,
+        colStart,
+        colSpan: colEnd - colStart + 1,
+        isStart: segStartKey === entry.date,
+        isEnd: segEndKey === entry.endDate,
+      };
+    })
+    .filter((s): s is Omit<BarSegment, "lane"> => s !== null)
+    .sort((a, b) => a.colStart - b.colStart || b.colSpan - a.colSpan);
+
+  const laneEnds: number[] = [];
+  const segments: BarSegment[] = [];
+  for (const seg of raw) {
+    let lane = laneEnds.findIndex((end) => end < seg.colStart);
+    if (lane === -1) {
+      lane = laneEnds.length;
+      laneEnds.push(seg.colStart + seg.colSpan - 1);
+    } else {
+      laneEnds[lane] = seg.colStart + seg.colSpan - 1;
+    }
+    segments.push({ ...seg, lane });
+  }
+  return { segments, laneCount: laneEnds.length };
+}
+
+function WeekRow({
+  week,
+  month,
+  todayKey,
   entries,
-  canAdd,
   minHeight,
-  onAdd,
+  onAddDate,
   onEditEntry,
 }: {
-  day: Date;
-  inMonth: boolean;
-  isToday: boolean;
+  week: Date[];
+  month: number | null;
+  todayKey: string;
   entries: EntryVM[];
-  canAdd: boolean;
-  minHeight: string;
-  onAdd: () => void;
+  minHeight: number;
+  onAddDate: (date: string) => void;
   onEditEntry: (id: string) => void;
 }) {
+  const { segments, laneCount } = useMemo(() => layoutWeekBars(week, entries), [week, entries]);
+  const barsHeight = Math.max(laneCount, 1) * (BAR_HEIGHT + BAR_GAP);
+
   return (
-    <div
-      style={{ minHeight }}
-      className={`flex flex-col gap-1 border-r border-gray-100 p-1.5 last:border-r-0 ${inMonth ? "bg-white" : "bg-gray-50"}`}
-    >
-      <div className="flex items-center justify-between">
-        <span
-          className={`flex h-5 w-5 items-center justify-center rounded-full text-xs ${
-            isToday ? "bg-[#0066cc] font-semibold text-white" : inMonth ? "text-gray-900" : "text-gray-400"
-          }`}
-        >
-          {day.getDate()}
-        </span>
-        <button
-          type="button"
-          onClick={onAdd}
-          disabled={!canAdd}
-          title={canAdd ? "일정 추가" : "먼저 상단에서 카테고리를 선택하세요"}
-          aria-label="일정 추가"
-          className="flex h-4 w-4 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30"
-        >
-          +
-        </button>
-      </div>
-      <div className="flex flex-1 flex-col gap-1 overflow-y-auto">
-        <EntryList entries={entries} onEditEntry={onEditEntry} />
+    <div className="grid grid-cols-7 border-b border-gray-100 last:border-b-0">
+      {week.map((day) => {
+        const key = toDateKey(day);
+        const inMonth = month === null || day.getMonth() === month;
+        return (
+          <div
+            key={key}
+            className={`flex items-center justify-between border-r border-gray-100 px-1.5 pt-1 last:border-r-0 ${inMonth ? "bg-white" : "bg-gray-50"}`}
+          >
+            <span
+              className={`flex h-5 w-5 items-center justify-center rounded-full text-xs ${
+                key === todayKey ? "bg-[#0066cc] font-semibold text-white" : inMonth ? "text-gray-900" : "text-gray-400"
+              }`}
+            >
+              {day.getDate()}
+            </span>
+            <button
+              type="button"
+              onClick={() => onAddDate(key)}
+              title="일정 추가"
+              aria-label="일정 추가"
+              className="flex h-4 w-4 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            >
+              +
+            </button>
+          </div>
+        );
+      })}
+      <div className="relative col-span-7" style={{ minHeight: Math.max(barsHeight + 8, minHeight) }}>
+        {segments.map((seg) => {
+          const showLabel = seg.isStart || seg.colStart === 0;
+          return (
+            <button
+              key={`${seg.entry.id}-${seg.colStart}`}
+              type="button"
+              onClick={() => onEditEntry(seg.entry.id)}
+              title={seg.entry.content}
+              style={{
+                position: "absolute",
+                left: `calc(${(seg.colStart / 7) * 100}% + 2px)`,
+                width: `calc(${(seg.colSpan / 7) * 100}% - 4px)`,
+                top: 4 + seg.lane * (BAR_HEIGHT + BAR_GAP),
+                height: BAR_HEIGHT,
+                backgroundColor: seg.entry.categoryColor,
+              }}
+              className={`overflow-hidden truncate px-2 text-left text-[11px] font-medium text-white hover:brightness-95 ${
+                seg.isStart ? "rounded-l-md" : ""
+              } ${seg.isEnd ? "rounded-r-md" : ""}`}
+            >
+              {showLabel ? seg.entry.content : " "}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -260,7 +321,6 @@ function MobileDayAccordion({
   day,
   isToday,
   entries,
-  canAdd,
   defaultOpen,
   onAdd,
   onEditEntry,
@@ -268,7 +328,6 @@ function MobileDayAccordion({
   day: Date;
   isToday: boolean;
   entries: EntryVM[];
-  canAdd: boolean;
   defaultOpen: boolean;
   onAdd: () => void;
   onEditEntry: (id: string) => void;
@@ -285,13 +344,21 @@ function MobileDayAccordion({
         <span className="text-xs text-gray-400">{entries.length > 0 ? `${entries.length}건` : ""}</span>
       </summary>
       <div className="flex flex-col gap-1 border-t border-gray-100 p-2">
-        <EntryList entries={entries} onEditEntry={onEditEntry} />
+        {entries.map((e) => (
+          <button
+            key={e.id}
+            type="button"
+            onClick={() => onEditEntry(e.id)}
+            className="flex items-center gap-1.5 rounded px-1.5 py-1 text-left text-xs hover:bg-gray-100"
+          >
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: e.categoryColor }} aria-hidden />
+            <span className="truncate text-gray-900">{e.content}</span>
+          </button>
+        ))}
         <button
           type="button"
           onClick={onAdd}
-          disabled={!canAdd}
-          title={canAdd ? undefined : "먼저 상단에서 카테고리를 선택하세요"}
-          className="mt-1 rounded-md border border-dashed border-gray-300 px-2 py-1.5 text-xs text-gray-500 hover:border-gray-400 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-1 rounded-md border border-dashed border-gray-300 px-2 py-1.5 text-xs text-gray-500 hover:border-gray-400 hover:text-gray-700"
         >
           + 일정 추가
         </button>
@@ -300,97 +367,9 @@ function MobileDayAccordion({
   );
 }
 
-// Groups entries by category, preserving each category's first-appearance
-// order, so a day's entries cluster by category (JM, JM, Q10, ...) instead
-// of the raw creation order they'd otherwise come back from the DB in.
-function groupEntriesByCategory(entries: EntryVM[]): { categoryId: string; categoryName: string; entries: EntryVM[] }[] {
-  const order: string[] = [];
-  const groups = new Map<string, EntryVM[]>();
-  for (const entry of entries) {
-    if (!groups.has(entry.categoryId)) {
-      groups.set(entry.categoryId, []);
-      order.push(entry.categoryId);
-    }
-    groups.get(entry.categoryId)!.push(entry);
-  }
-  return order.map((categoryId) => ({
-    categoryId,
-    categoryName: groups.get(categoryId)![0].categoryName,
-    entries: groups.get(categoryId)!,
-  }));
-}
-
-function EntryList({ entries, onEditEntry }: { entries: EntryVM[]; onEditEntry: (id: string) => void }) {
-  return (
-    <>
-      {groupEntriesByCategory(entries).map((group) => (
-        <div key={group.categoryId} className="flex flex-col gap-0.5">
-          <span className="px-1.5 text-[10px] font-semibold text-gray-500">{group.categoryName}</span>
-          {group.entries.map((entry) => (
-            <EntryContentRow key={entry.id} entry={entry} onClick={() => onEditEntry(entry.id)} />
-          ))}
-        </div>
-      ))}
-    </>
-  );
-}
-
-function EntryContentRow({ entry, onClick }: { entry: EntryVM; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-start gap-1 rounded px-1.5 py-0.5 text-left text-[11px] hover:bg-gray-100"
-    >
-      <span
-        className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${entry.status === "DONE" ? "bg-gray-900" : "bg-blue-600"}`}
-        aria-hidden
-      />
-      <span className={`line-clamp-2 ${entry.status === "DONE" ? "text-gray-900" : "text-blue-700"}`}>
-        {entry.content}
-      </span>
-    </button>
-  );
-}
-
-function StatusToggle({ status, onChange }: { status: EntryStatus; onChange: (s: EntryStatus) => void }) {
-  return (
-    <div className="flex gap-1.5">
-      <button
-        type="button"
-        onClick={() => onChange("DONE")}
-        className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium ${
-          status === "DONE" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-        }`}
-      >
-        <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-        완료
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange("PLANNED")}
-        className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium ${
-          status === "PLANNED" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-        }`}
-      >
-        <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-        예정
-      </button>
-    </div>
-  );
-}
-
-function CategorySwitcher({
-  categories,
-  currentCategoryId,
-  onSelect,
-}: {
-  categories: CategoryVM[];
-  currentCategoryId: string | null;
-  onSelect: (id: string | null) => void;
-}) {
-  const [managing, setManaging] = useState(false);
+function CategoryManagePanel({ categories }: { categories: CategoryVM[] }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const [color, setColor] = useState(CATEGORY_COLOR_SWATCHES[0]);
   const [, startTransition] = useTransition();
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await createCategoryAction(prev, formData);
@@ -399,71 +378,93 @@ function CategorySwitcher({
   }, initialState);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs text-gray-500">카테고리:</span>
-      <select
-        value={currentCategoryId ?? ""}
-        onChange={(e) => onSelect(e.target.value || null)}
-        className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 outline-none focus:border-[#0066cc]"
-      >
-        <option value="">선택 안 함</option>
+    <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <div className="flex flex-wrap gap-2">
         {categories.map((c) => (
-          <option key={c.id} value={c.id}>
+          <span
+            key={c.id}
+            className="flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs text-gray-600 ring-1 ring-gray-200"
+          >
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c.color }} aria-hidden />
             {c.name}
-          </option>
-        ))}
-      </select>
-      <button
-        type="button"
-        onClick={() => setManaging((v) => !v)}
-        className="text-xs text-gray-500 underline decoration-dotted hover:text-gray-700"
-      >
-        카테고리 관리
-      </button>
-      {managing && (
-        <div className="flex flex-wrap items-center gap-2">
-          <form ref={formRef} action={formAction} className="flex items-center gap-1">
-            <input
-              name="name"
-              placeholder="새 카테고리 이름"
-              required
-              className="w-32 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#0066cc]"
-            />
             <button
-              type="submit"
-              disabled={pending}
-              className="rounded-full bg-[#0066cc] px-2 py-1 text-xs text-white hover:bg-[#0071e3] disabled:opacity-60"
+              type="button"
+              onClick={() => {
+                if (confirm(`"${c.name}" 카테고리를 삭제할까요? 등록된 일정 기록도 함께 삭제됩니다.`)) {
+                  startTransition(() => deleteCategoryAction(c.id));
+                }
+              }}
+              title={`${c.name} 삭제`}
+              aria-label={`${c.name} 삭제`}
+              className="text-gray-400 hover:text-red-600"
             >
-              추가
+              ×
             </button>
-          </form>
-          {categories.map((c) => (
-            <span key={c.id} className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-              {c.name}
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirm(`"${c.name}" 카테고리를 삭제할까요? 등록된 일정 기록도 함께 삭제됩니다.`)) {
-                    startTransition(() => deleteCategoryAction(c.id));
-                  }
-                }}
-                title={`${c.name} 삭제`}
-                aria-label={`${c.name} 삭제`}
-                className="text-gray-400 hover:text-red-600"
-              >
-                ×
-              </button>
-            </span>
+          </span>
+        ))}
+      </div>
+      <form ref={formRef} action={formAction} className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="color" value={color} />
+        <input
+          name="name"
+          placeholder="새 카테고리 이름"
+          required
+          className="w-40 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#0066cc]"
+        />
+        <div className="flex items-center gap-1">
+          {CATEGORY_COLOR_SWATCHES.map((swatch) => (
+            <button
+              key={swatch}
+              type="button"
+              onClick={() => setColor(swatch)}
+              title={swatch}
+              style={{ backgroundColor: swatch }}
+              className={`h-5 w-5 rounded-full ${color === swatch ? "ring-2 ring-offset-1 ring-gray-400" : ""}`}
+            />
           ))}
         </div>
-      )}
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-full bg-[#0066cc] px-2.5 py-1 text-xs text-white hover:bg-[#0071e3] disabled:opacity-60"
+        >
+          추가
+        </button>
+      </form>
       {state.error && <p className="text-xs text-red-600">{state.error}</p>}
     </div>
   );
 }
 
-function AddEntryModal({ date, category, onClose }: { date: string; category: CategoryVM; onClose: () => void }) {
-  const [status, setStatus] = useState<EntryStatus>("PLANNED");
+function CategorySelect({
+  categories,
+  defaultValue,
+  className,
+}: {
+  categories: CategoryVM[];
+  defaultValue?: string;
+  className: string;
+}) {
+  return (
+    <select name="categoryId" required defaultValue={defaultValue ?? categories[0]?.id ?? ""} className={className}>
+      {categories.map((c) => (
+        <option key={c.id} value={c.id}>
+          {c.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function AddEntryModal({
+  date,
+  categories,
+  onClose,
+}: {
+  date: string;
+  categories: CategoryVM[];
+  onClose: () => void;
+}) {
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await createEntryAction(prev, formData);
     if (!result.error) onClose();
@@ -475,17 +476,37 @@ function AddEntryModal({ date, category, onClose }: { date: string; category: Ca
       <div onClick={onClose} className="absolute inset-0" aria-hidden />
       <form action={formAction} className="relative z-10 flex w-full max-w-sm flex-col gap-3 rounded-lg bg-white p-5 shadow-2xl">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">
-            {new Date(`${date}T00:00:00`).toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" })} ·{" "}
-            {category.name}
-          </h3>
+          <h3 className="text-sm font-semibold text-gray-900">일정 추가</h3>
           <button type="button" onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-900">
             ✕
           </button>
         </div>
-        <input type="hidden" name="categoryId" value={category.id} />
-        <input type="hidden" name="date" value={date} />
-        <input type="hidden" name="status" value={status} />
+        <CategorySelect
+          categories={categories}
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc]"
+        />
+        <div className="flex items-center gap-2">
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="text-xs text-gray-400">시작일</span>
+            <input
+              name="date"
+              type="date"
+              defaultValue={date}
+              required
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc]"
+            />
+          </label>
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="text-xs text-gray-400">종료일</span>
+            <input
+              name="endDate"
+              type="date"
+              defaultValue={date}
+              required
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc]"
+            />
+          </label>
+        </div>
         <textarea
           name="content"
           autoFocus
@@ -494,7 +515,6 @@ function AddEntryModal({ date, category, onClose }: { date: string; category: Ca
           placeholder="일정 내용을 적어주세요"
           className="resize-none rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc]"
         />
-        <StatusToggle status={status} onChange={setStatus} />
         {state.error && <p className="text-sm text-red-600">{state.error}</p>}
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100">
@@ -513,9 +533,16 @@ function AddEntryModal({ date, category, onClose }: { date: string; category: Ca
   );
 }
 
-function EditEntryModal({ entry, onClose }: { entry: EntryVM; onClose: () => void }) {
+function EditEntryModal({
+  entry,
+  categories,
+  onClose,
+}: {
+  entry: EntryVM;
+  categories: CategoryVM[];
+  onClose: () => void;
+}) {
   const [content, setContent] = useState(entry.content);
-  const [status, setStatus] = useState<EntryStatus>(entry.status);
   const [, startTransition] = useTransition();
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await updateEntryAction(prev, formData);
@@ -528,21 +555,40 @@ function EditEntryModal({ entry, onClose }: { entry: EntryVM; onClose: () => voi
       <div onClick={onClose} className="absolute inset-0" aria-hidden />
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-3 rounded-lg bg-white p-5 shadow-2xl">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">
-            {new Date(`${entry.date}T00:00:00`).toLocaleDateString("ko-KR", {
-              month: "long",
-              day: "numeric",
-              weekday: "short",
-            })}{" "}
-            · {entry.categoryName}
-          </h3>
+          <h3 className="text-sm font-semibold text-gray-900">일정 수정</h3>
           <button type="button" onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-900">
             ✕
           </button>
         </div>
         <form action={formAction} className="flex flex-col gap-3">
           <input type="hidden" name="entryId" value={entry.id} />
-          <input type="hidden" name="status" value={status} />
+          <CategorySelect
+            categories={categories}
+            defaultValue={entry.categoryId}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc]"
+          />
+          <div className="flex items-center gap-2">
+            <label className="flex flex-1 flex-col gap-1">
+              <span className="text-xs text-gray-400">시작일</span>
+              <input
+                name="date"
+                type="date"
+                defaultValue={entry.date}
+                required
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc]"
+              />
+            </label>
+            <label className="flex flex-1 flex-col gap-1">
+              <span className="text-xs text-gray-400">종료일</span>
+              <input
+                name="endDate"
+                type="date"
+                defaultValue={entry.endDate}
+                required
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc]"
+              />
+            </label>
+          </div>
           <textarea
             name="content"
             autoFocus
@@ -552,7 +598,6 @@ function EditEntryModal({ entry, onClose }: { entry: EntryVM; onClose: () => voi
             onChange={(e) => setContent(e.target.value)}
             className="resize-none rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#0066cc]"
           />
-          <StatusToggle status={status} onChange={setStatus} />
           {state.error && <p className="text-sm text-red-600">{state.error}</p>}
           <div className="flex justify-between gap-2">
             <button

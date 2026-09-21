@@ -55,9 +55,11 @@ export default async function SchedulePage({
   const rangeEndExclusive = new Date(weeks[weeks.length - 1][6]);
   rangeEndExclusive.setDate(rangeEndExclusive.getDate() + 1);
 
+  // Overlap query, not just a start-date match — a multi-day bar that started
+  // before this range but still runs into it must still show up.
   const [entryRows, categories] = await Promise.all([
     prisma.scheduleEntry.findMany({
-      where: { date: { gte: rangeStart, lt: rangeEndExclusive } },
+      where: { date: { lt: rangeEndExclusive }, endDate: { gte: rangeStart } },
       include: { category: true },
       orderBy: { createdAt: "asc" },
     }),
@@ -67,10 +69,11 @@ export default async function SchedulePage({
   const entries = entryRows.map((e) => ({
     id: e.id,
     date: toDateKey(e.date),
+    endDate: toDateKey(e.endDate),
     content: e.content,
-    status: e.status,
     categoryId: e.categoryId,
     categoryName: e.category.name,
+    categoryColor: e.category.color,
   }));
 
   return (
@@ -86,7 +89,7 @@ export default async function SchedulePage({
           nextHref={nextHref}
           todayHref={todayHref}
           entries={entries}
-          categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+          categories={categories.map((c) => ({ id: c.id, name: c.name, color: c.color }))}
         />
       </div>
     </>
