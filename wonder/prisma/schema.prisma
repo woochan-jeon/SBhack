@@ -1,0 +1,255 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus @default(TODO)
+  dueDate     DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // JSON-encoded string[] of freeform team-member names — the workspace has
+  // no accounts, so assignees are just names, not linked records.
+  assigneeNames String @default("[]")
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // Slack channel this task should post updates to, picked per-task.
+  slackChannelId   String?
+  slackChannelName String?
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#611f69")
+  createdAt DateTime @default(now())
+
+  tasks Task[]
+}
+
+// Singleton row: the team's shared Google Calendar connection.
+model CalendarConnection {
+  id           String   @id @default(cuid())
+  googleEmail  String
+  // JSON-encoded string[] of calendar IDs shown together in # 캘린더.
+  calendarIds  String   @default("[\"primary\"]")
+  // Drive folder the # 드라이브 channel is scoped to. Null means "My Drive" root.
+  driveRootFolderId   String?
+  driveRootFolderName String?
+  // Spreadsheet the # 마케팅 channel syncs to. Created automatically on first sync.
+  marketingSheetId String?
+  accessToken  String
+  refreshToken String
+  expiryDate   DateTime
+  updatedAt    DateTime @updatedAt
+}
+
+// Singleton row: the team's Slack workspace connection (bot token from OAuth).
+model SlackConnection {
+  id          String   @id @default(cuid())
+  teamName    String
+  teamId      String
+  botUserId   String
+  accessToken String
+  createdAt   DateTime @default(now())
+}
+
+// Singleton row: the team-shared flowboard canvas. Stored as one JSON blob
+// (projects/tasks/markers/pan/zoom) since the whole board is saved wholesale
+// from the client canvas rather than queried field-by-field.
+model FlowBoard {
+  id        String   @id @default(cuid())
+  stateJson String
+  updatedAt DateTime @updatedAt
+}
+
+enum WorkLogStatus {
+  DONE
+  PLANNED
+}
+
+// A selectable identity for # 업무일지 entries. There's no login/account system
+// in this app, so this is just a display-name registry (picked client-side
+// and remembered per browser), not a real user record.
+model WorkLogMember {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  entries WorkLogEntry[]
+}
+
+// One day's freeform note from one member in # 업무일지, mirroring the team's
+// old per-person calendar spreadsheet (검정 = done, 파랑 = planned).
+model WorkLogEntry {
+  id        String        @id @default(cuid())
+  date      DateTime
+  content   String
+  status    WorkLogStatus @default(PLANNED)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  memberId String
+  member   WorkLogMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@index([memberId, date])
+}
+
+// A managed category (e.g. JM/Q10/창동) # 일정 entries are filed under —
+// same idea as WorkLogMember, but for locations/teams instead of people, and
+// freely addable/removable rather than picked from a fixed roster.
+model ScheduleCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#0066cc")
+  createdAt DateTime @default(now())
+
+  entries ScheduleEntry[]
+}
+
+// One item in # 일정, rendered as a continuous bar from `date` to `endDate`
+// (same value for a single-day item) and colored by its category rather than
+// by a done/planned status.
+model ScheduleEntry {
+  id        String   @id @default(cuid())
+  date      DateTime
+  endDate   DateTime
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categoryId String
+  category   ScheduleCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@index([categoryId, date])
+}
+
+// Shared team credentials for # 비밀번호. Gated behind a passphrase at the page
+// level (see src/lib/password-gate.ts) since the workspace itself has no login.
+model PasswordEntry {
+  id        String   @id @default(cuid())
+  service   String
+  account   String?
+  password  String
+  note      String?
+  sourceUrl String?
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A marketing budget owner for # 마케팅 — currently 큐텐/쇼피 (each run by a
+// different outsourced operator), but kept as a managed list like Category
+// since more storefronts/projects may be added later.
+model MarketingProject {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#0066cc")
+  createdAt DateTime @default(now())
+
+  budgets    MarketingBudget[]
+  expenses   MarketingExpense[]
+  categories MarketingCategory[]
+}
+
+// A spend category within one MarketingProject (e.g. 큐텐의 "광고비"/"인플루언서"),
+// so # 마케팅 can break down status/spend below the project level. Scoped to a
+// single project since 큐텐/쇼피 are run by different operators with different
+// category schemes.
+model MarketingCategory {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#0066cc")
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   MarketingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  expenses MarketingExpense[]
+  budgets  MarketingBudget[]
+
+  @@unique([projectId, name])
+}
+
+// One project's (or, optionally, one category's) target spend for a given
+// month, shown against actual MarketingExpense totals in # 마케팅. A row with
+// categoryId = null is the project-wide target; a row with categoryId set is
+// a target scoped to that category, so budgets can be broken down the same
+// way expenses already are.
+model MarketingBudget {
+  id        String   @id @default(cuid())
+  year      Int
+  month     Int // 1-12
+  amount    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String
+  project   MarketingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category   MarketingCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, categoryId, year, month])
+}
+
+// One marketing spend line item for # 마케팅 — which channel it ran on, what
+// was done, how much it cost, and how it was paid.
+model MarketingExpense {
+  id            String   @id @default(cuid())
+  date          DateTime
+  channel       String
+  description   String
+  amount        Int
+  paymentMethod String
+  note          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  projectId String
+  project   MarketingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category   MarketingCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([date])
+  @@index([projectId, date])
+}
+
+// Curated agenda/decision summaries for the # 회의 아카이브 channel, sourced from
+// the Gemini-generated meeting minutes in the Drive "Meet Recordings" folder.
+model MeetingSummary {
+  id          String   @id @default(cuid())
+  driveFileId String   @unique
+  meetingDate DateTime
+  title       String
+  // JSON-encoded { agenda: string, decision: string | null }[] — each agenda
+  // item is paired inline with its decision (or null if still undecided).
+  itemsJson   String
+  sourceUrl   String?
+  createdAt   DateTime @default(now())
+}
+
