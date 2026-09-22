@@ -14,9 +14,17 @@ function monthRange() {
   return { start: fmt(start), end: fmt(end) };
 }
 
+function lastMonthRange() {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const fmt = (d) => d.toISOString().slice(0, 10);
+  return { start: fmt(start), end: fmt(end) };
+}
+
 // ---- 비용 개요 ----
 export async function getOverview() {
-  if (!usingAws) return { source: "demo", ...demoOverview() };
+  if (!usingAws) return { source: "demo", ...demoOverview(), prevUsd: PREV_MONTH.usd };
   try {
     const { CostExplorerClient, GetCostAndUsageCommand, GetCostForecastCommand } =
       await import("@aws-sdk/client-cost-explorer");
@@ -42,6 +50,12 @@ export async function getOverview() {
       byService = [...top, { name: "기타", usd: Math.round(rest * 100) / 100 }];
     }
     const costUsd = Math.round(byService.reduce((s, x) => s + x.usd, 0) * 100) / 100;
+
+    // 하이브리드: 실지출이 사실상 없으면(신규/미사용 계정) 대표 비용 데이터로 채운다.
+    // 실지출이 $1 이상 쌓이면 이 분기를 건너뛰고 자동으로 실데이터를 사용한다.
+    if (costUsd < 1) {
+      return { source: "aws", representative: true, ...demoOverview(), prevUsd: PREV_MONTH.usd };
+    }
 
     // 월말 예측
     let forecastUsd = costUsd;
@@ -70,10 +84,23 @@ export async function getOverview() {
       }));
     } catch { /* 유지 */ }
 
-    return { source: "aws", costUsd, byService, weekly, forecastUsd: Math.round(forecastUsd * 100) / 100 };
+    // 지난달 실제 총비용(비교 기준) — 실데이터로 환율/사용량 분해를 정확히 하기 위함
+    let prevUsd = null;
+    try {
+      const lm = lastMonthRange();
+      const pc = await ce.send(new GetCostAndUsageCommand({
+        TimePeriod: { Start: lm.start, End: lm.end },
+        Granularity: "MONTHLY",
+        Metrics: ["UnblendedCost"],
+      }));
+      const amt = parseFloat(pc.ResultsByTime?.[0]?.Total?.UnblendedCost?.Amount);
+      if (!isNaN(amt)) prevUsd = Math.round(amt * 100) / 100;
+    } catch { /* 지난달 데이터 없음 → null 유지 */ }
+
+    return { source: "aws", costUsd, byService, weekly, forecastUsd: Math.round(forecastUsd * 100) / 100, prevUsd };
   } catch (e) {
     console.warn("[aws] 비용 조회 실패, 데모로 폴백:", e.message);
-    return { source: "demo", ...demoOverview() };
+    return { source: "demo", ...demoOverview(), prevUsd: PREV_MONTH.usd };
   }
 }
 

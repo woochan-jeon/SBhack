@@ -52,6 +52,19 @@
   .chip b{color:var(--ink);font-weight:600}
   .dot{width:7px;height:7px;border-radius:50%;background:var(--good);flex:none;box-shadow:0 0 0 3px var(--good-soft)}
   .dot.demo{background:var(--warn);box-shadow:0 0 0 3px var(--warn-soft)}
+  .alertbox{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+  .alert-head{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+  .alert-head .pulse{width:8px;height:8px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 3px var(--bad-soft);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .alert{display:flex;align-items:flex-start;gap:12px;background:var(--surface);border:1px solid var(--line);border-left-width:4px;border-radius:var(--r);padding:13px 15px;box-shadow:var(--shadow)}
+  .alert.high{border-left-color:var(--bad)}
+  .alert.warn{border-left-color:var(--warn)}
+  .alert.info{border-left-color:var(--brand)}
+  .alert .a-ico{font-size:18px;flex:none;line-height:1.4}
+  .alert .a-body{flex:1;min-width:0}
+  .alert .a-title{font-weight:600;font-size:13.5px}
+  .alert .a-detail{color:var(--muted);font-size:12px;margin-top:3px;line-height:1.5}
+  .alert .a-act{flex:none;align-self:center}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
   .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
   .kpi .lab{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
@@ -62,6 +75,20 @@
   .tag{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:6px;font-family:var(--mono)}
   .tag.up{color:var(--bad);background:var(--bad-soft)}
   .tag.fx{color:var(--krw);background:var(--krw-soft)}
+  .decomp{margin-bottom:16px}
+  .decomp .card-b{display:flex;flex-direction:column;gap:12px}
+  .decomp-head{font-size:13.5px;line-height:1.55}
+  .decomp-head b{color:var(--ink);font-weight:600}
+  .decomp-head b.fxv{color:var(--krw)}
+  .decomp-bar{display:flex;height:34px;border-radius:9px;overflow:hidden;border:1px solid var(--line)}
+  .decomp-bar .seg{display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;color:#fff;font-family:var(--mono);min-width:2px;white-space:nowrap;overflow:hidden}
+  .decomp-bar .seg.fx{background:var(--krw)}
+  .decomp-bar .seg.us{background:var(--brand)}
+  .decomp-legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  .decomp-legend b{font-family:var(--mono);color:var(--ink);font-weight:600}
+  .decomp-legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .decomp-legend .sw.fx{background:var(--krw)}
+  .decomp-legend .sw.us{background:var(--brand)}
   .grid{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-bottom:16px}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
   .card-h{display:flex;align-items:center;justify-content:space-between;padding:15px 17px;border-bottom:1px solid var(--line)}
@@ -85,6 +112,17 @@
   .typing i{width:6px;height:6px;border-radius:50%;background:var(--faint);animation:bl 1.2s infinite}
   .typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
   @keyframes bl{0%,60%,100%{opacity:.3}30%{opacity:1}}
+  .msg.tool{align-self:flex-start;font-size:11px;color:var(--faint);font-family:var(--mono);padding:1px 4px;background:none;border:none}
+  .msg.plan{max-width:100%;width:100%;background:none;border:none;padding:0;display:flex;flex-direction:column;gap:8px}
+  .plan-h{font-size:12.5px;font-weight:600;color:var(--ink)}
+  .plan-h b{color:var(--good)}
+  .plan-item{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+  .plan-item.done{opacity:.5}
+  .pi-main b{font-size:12.5px}
+  .pi-main small{display:block;color:var(--muted);font-size:10.5px;font-family:var(--mono)}
+  .pi-reason{color:var(--muted);font-size:11px;margin-top:2px;font-family:var(--sans)}
+  .pi-save{font-family:var(--mono);color:var(--good);font-weight:600;font-size:12px;white-space:nowrap}
+  .plan-all{align-self:flex-start}
   .grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
   table{width:100%;border-collapse:collapse;font-size:12.5px}
   th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);font-weight:600;padding:0 8px 9px}
@@ -116,8 +154,11 @@
     <div class="logo"><div class="mark">FX</div><div><b>CloudFX</b><span>환율까지 아는 클라우드 비용 코파일럿</span></div></div>
     <div class="spacer"></div>
     <div class="chip" id="srcChip"><span class="dot demo" id="srcDot"></span> <span id="srcText">연결 중…</span></div>
+    <div class="chip" id="repChip" title="이 계정에 쌓인 실지출이 없어 비용·환율 분석은 대표 데이터로 표시됩니다. 실지출이 발생하면 자동으로 실데이터로 전환됩니다. (유휴 자원 탐지·조치는 실제 계정 기준입니다.)" style="display:none">💡 비용: 대표 데이터</div>
     <div class="chip">USD/KRW <b class="num" id="rateChip">—</b></div>
   </div>
+
+  <div class="alertbox" id="alertBox" style="display:none"></div>
 
   <div class="kpis">
     <div class="kpi"><div class="lab">이번달 비용 (USD)</div><div class="big num" id="kUsd">—</div><div class="sub">월말 예상 <span class="num" id="kForecast">—</span></div></div>
@@ -126,9 +167,22 @@
     <div class="kpi"><div class="lab">발견된 절감액</div><div class="big num" id="kSave" style="color:var(--good)">—</div><div class="sub" id="kSaveSub">유휴 자원 정리 시</div></div>
   </div>
 
+  <div class="card decomp" id="decompCard">
+    <div class="card-h"><h2>📊 비용 증감 분해 · 환율 vs 사용량</h2><span class="hint">지난달 대비</span></div>
+    <div class="card-b">
+      <div class="decomp-head" id="decompHead">분석 중…</div>
+      <div class="decomp-bar" id="decompBar"></div>
+      <div class="decomp-legend">
+        <span><i class="sw fx"></i>환율 효과 <b id="dFx">—</b></span>
+        <span><i class="sw us"></i>사용량 효과 <b id="dUse">—</b></span>
+        <span>= 총 <b id="dTot">—</b></span>
+      </div>
+    </div>
+  </div>
+
   <div class="grid">
     <div class="card">
-      <div class="card-h"><h2>서비스별 비용</h2><span class="hint">이번달 · USD</span></div>
+      <div class="card-h"><h2>서비스별 비용</h2><span class="hint" id="svcHint">이번달 · USD</span></div>
       <div class="card-b"><div class="bars" id="bars"></div></div>
     </div>
     <div class="card">
@@ -181,6 +235,8 @@ async function load(){
   const live=ov.source==="aws";
   document.getElementById("srcDot").className="dot"+(live?"":" demo");
   document.getElementById("srcText").innerHTML=live?"AWS 실데이터 연동됨":"예시 데이터 (AWS 미연동)";
+  document.getElementById("repChip").style.display=ov.representative?"":"none";
+  document.getElementById("svcHint").textContent=ov.representative?"이번달 · USD · 대표 데이터":"이번달 · USD";
   document.getElementById("rateChip").textContent=ov.fx.rate.toLocaleString();
   // kpis
   document.getElementById("kUsd").textContent=usd(ov.costUsd);
@@ -188,6 +244,7 @@ async function load(){
   document.getElementById("kKrw").textContent=won(ov.fx.krwTotal);
   const fx=ov.fx.fxImpactKrw;
   document.getElementById("kFx").textContent=(fx>=0?"+":"−")+won(Math.abs(fx)).slice(0);
+  renderDecomp(ov.decomp);
   // bars
   const max=Math.max(...ov.byService.map(s=>s.usd));
   document.getElementById("bars").innerHTML=ov.byService.map((s,i)=>
@@ -199,8 +256,48 @@ async function load(){
   document.getElementById("simUsd").textContent=usd(ov.costUsd);
   sim();
   await loadIdle();
+  loadAlerts();
+}
+async function loadAlerts(){
+  try{
+    const {alerts}=await (await fetch("/api/alerts")).json();
+    const box=document.getElementById("alertBox");
+    if(!alerts||!alerts.length){box.style.display="none";return;}
+    box.style.display="";
+    box.innerHTML=`<div class="alert-head"><span class="pulse"></span>능동 점검 · ${alerts.length}건 감지</div>`+
+      alerts.map(a=>`<div class="alert ${a.level}">
+        <span class="a-ico">${a.icon||"⚠️"}</span>
+        <div class="a-body"><div class="a-title">${a.title}</div><div class="a-detail">${a.detail||""}</div></div>
+        ${a.action?`<div class="a-act"><button class="mini" data-kind="${a.action.kind}">${a.action.label}</button></div>`:""}
+      </div>`).join("");
+    box.querySelectorAll("button[data-kind]").forEach(b=>b.onclick=()=>alertAction(b.dataset.kind));
+  }catch(e){}
+}
+function alertAction(kind){
+  if(kind==="cleanup") ask("지금 뭘 정리하면 좋아?");
+  else if(kind==="diagnose") ask("이번달 비용이 왜 늘었어?");
+  else if(kind==="fxsim"){const el=document.querySelector(".sim");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});}
 }
 
+function renderDecomp(d){
+  if(!d){document.getElementById("decompCard").style.display="none";return;}
+  const bar=document.getElementById("decompBar"),leg=document.querySelector(".decomp-legend");
+  if(d.insufficient){
+    document.getElementById("decompHead").textContent=d.headline;
+    bar.style.display="none";leg.style.display="none";return;
+  }
+  bar.style.display="";leg.style.display="";
+  const sign=v=>(v>=0?"+":"−")+"₩"+Math.abs(Math.round(v)).toLocaleString("ko-KR");
+  document.getElementById("decompHead").innerHTML=
+    `지난달 대비 <b class="fxv">${sign(d.totalKrw)}</b> (${d.pct>=0?"+":""}${d.pct}%) 변동 — 이 중 <b>환율이 ${d.fxSharePct}%</b>, 사용량이 ${d.usageSharePct}%. 주된 원인은 <b>${d.driver}</b>입니다.`;
+  const aFx=Math.abs(d.fxKrw),aUs=Math.abs(d.usageKrw),sum=aFx+aUs||1;
+  document.getElementById("decompBar").innerHTML=
+    `<div class="seg fx" style="width:${aFx/sum*100}%" title="환율 효과 ${sign(d.fxKrw)}">환율</div>`+
+    `<div class="seg us" style="width:${aUs/sum*100}%" title="사용량 효과 ${sign(d.usageKrw)}">사용량</div>`;
+  document.getElementById("dFx").textContent=sign(d.fxKrw);
+  document.getElementById("dUse").textContent=sign(d.usageKrw);
+  document.getElementById("dTot").textContent=sign(d.totalKrw);
+}
 async function loadIdle(){
   const {resources}=await (await fetch("/api/idle")).json();
   STATE.idle=resources;
@@ -227,7 +324,7 @@ async function doAct(i){
 }
 
 // ---- chat ----
-const QUESTIONS=["이번주 비용이 왜 늘었어?","환율이 비용에 얼마나 영향 줬어?","지금 뭘 정리하면 좋아?"];
+const QUESTIONS=["🤖 오늘 브리핑 해줘","이번주 비용이 왜 늘었어?","환율이 비용에 얼마나 영향 줬어?","지금 뭘 정리하면 좋아?"];
 const stream=document.getElementById("stream");
 function push(cls,html){const d=document.createElement("div");d.className="msg "+cls;d.innerHTML=html;stream.appendChild(d);stream.scrollTop=stream.scrollHeight;return d;}
 function md(t){return t.replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");}
@@ -236,9 +333,37 @@ async function ask(q){
   const t=document.createElement("div");t.className="typing";t.innerHTML="<i></i><i></i><i></i>";stream.appendChild(t);stream.scrollTop=stream.scrollHeight;
   try{
     const r=await (await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:q})})).json();
-    t.remove();push("ai",md(r.answer||"응답 없음"));
+    t.remove();
+    if(r.steps&&r.steps.length){
+      const names=r.steps.map(s=>s.tool).join(" → ");
+      push("tool","🔧 "+names);
+    }
+    push("ai",md(r.answer||"응답 없음"));
+    if(r.plan&&r.plan.length) renderPlan(r.plan);
     document.getElementById("aiHint").textContent=r.live?"Claude "+r.model:"폴백 응답";
   }catch(e){t.remove();push("ai","오류: "+e.message);}
+}
+function renderPlan(plan){
+  const total=plan.reduce((s,a)=>s+(a.saveUsd||0),0);
+  const w=document.createElement("div");w.className="msg plan";
+  w.innerHTML=`<div class="plan-h">🤖 AI 실행안 · 월 <b>$${total.toFixed(1)}</b> (${won(total*STATE.overview.fx.rate)}) 절감</div>`+
+    plan.map(a=>`<div class="plan-item" data-id="${a.id}" data-action="${a.action}">
+      <div class="pi-main"><b>${a.name}</b> <small>${a.id} · ${a.type}</small>${a.reason?`<div class="pi-reason">${a.reason}</div>`:""}</div>
+      <div class="pi-save">$${a.saveUsd}/월</div>
+      <button class="mini pi-btn">${actLabel(a.action)}</button>
+    </div>`).join("")+
+    `<button class="mini plan-all">전체 실행 (${plan.length}건)</button>`;
+  stream.appendChild(w);stream.scrollTop=stream.scrollHeight;
+  w.querySelectorAll(".plan-item").forEach(row=>row.querySelector(".pi-btn").onclick=()=>execPlanItem(row));
+  w.querySelector(".plan-all").onclick=()=>w.querySelectorAll(".plan-item").forEach(row=>execPlanItem(row));
+}
+async function execPlanItem(row){
+  const id=row.dataset.id,action=row.dataset.action,btn=row.querySelector(".pi-btn");
+  if(btn.disabled)return;btn.disabled=true;
+  try{await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,action})});}catch(e){}
+  btn.textContent="✓ 완료";row.classList.add("done");
+  const r=STATE.idle.find(x=>x.id===id);if(r&&!r.done){r.done=true;renderRes();}
+  toast(`${row.querySelector("b").textContent} 조치 완료 · 월 $${(STATE.idle.find(x=>x.id===id)||{}).saveUsd||""} 절감`);
 }
 document.getElementById("suggest").innerHTML=QUESTIONS.map(q=>`<button class="sg">${q}</button>`).join("");
 document.querySelectorAll(".sg").forEach(b=>b.onclick=()=>ask(b.textContent));
