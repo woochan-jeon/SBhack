@@ -1,0 +1,181 @@
+<svg viewBox="0 0 1160 900" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI','Malgun Gothic',sans-serif">
+  <defs>
+    <linearGradient id="hdr" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <marker id="arw" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#64748b"/>
+    </marker>
+    <marker id="arwAi" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#7c3aed"/>
+    </marker>
+    <style>
+      .lbl{font-size:13px;fill:#334155}
+      .lyr{font-size:13px;font-weight:700;letter-spacing:.5px}
+      .box-t{font-size:14.5px;font-weight:700;fill:#0f172a}
+      .box-s{font-size:11.5px;fill:#475569}
+      .pill{font-size:11px;font-weight:600}
+      .flow{font-size:11px;fill:#64748b;font-style:italic}
+    </style>
+  </defs>
+
+  <rect width="1160" height="900" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1160" height="70" fill="url(#hdr)"/>
+  <text x="40" y="38" font-size="24" font-weight="800" fill="#fff">CloudFX</text>
+  <text x="40" y="58" font-size="13" fill="#e0e7ff">AI 클라우드 비용 관리 코파일럿 · 환율 반영 · Claude Tool-Use 에이전트</text>
+  <text x="1120" y="44" text-anchor="end" font-size="12" fill="#c7d2fe">Node.js · Express · AWS SDK · Anthropic Claude</text>
+
+  <!-- ===================== 1. FRONTEND ===================== -->
+  <rect x="30" y="95" width="1100" height="115" rx="12" fill="#eef2ff" stroke="#c7d2fe"/>
+  <text x="50" y="120" class="lyr" fill="#4338ca">① FRONTEND · public/index.html</text>
+  <g>
+    <rect x="55" y="132" width="235" height="62" rx="8" fill="#fff" stroke="#c7d2fe"/>
+    <text x="70" y="155" class="box-t">비용 · 환율 대시보드</text>
+    <text x="70" y="175" class="box-s">USD/KRW 총비용, 환율 영향,</text>
+    <text x="70" y="189" class="box-s">사용량 vs 환율 분해 시각화</text>
+
+    <rect x="305" y="132" width="235" height="62" rx="8" fill="#fff" stroke="#c7d2fe"/>
+    <text x="320" y="155" class="box-t">AI 코파일럿 챗</text>
+    <text x="320" y="175" class="box-s">"20% 줄여줘" 자연어 요청,</text>
+    <text x="320" y="189" class="box-s">에이전트 호출 도구 스텝 표시</text>
+
+    <rect x="555" y="132" width="235" height="62" rx="8" fill="#fff" stroke="#c7d2fe"/>
+    <text x="570" y="155" class="box-t">절감안 승인 UI</text>
+    <text x="570" y="175" class="box-s">AI 제안 실행안 확인 →</text>
+    <text x="570" y="189" class="box-s">원클릭 승인(조치 실행)</text>
+
+    <rect x="805" y="132" width="300" height="62" rx="8" fill="#fff" stroke="#c7d2fe"/>
+    <text x="820" y="155" class="box-t">능동 알림 · 브리핑</text>
+    <text x="820" y="175" class="box-s">유휴 리소스 · 환율 리스크 ·</text>
+    <text x="820" y="189" class="box-s">예산 초과 전망 선제 경고</text>
+  </g>
+
+  <!-- arrow frontend<->backend -->
+  <line x1="580" y1="210" x2="580" y2="248" stroke="#64748b" stroke-width="2" marker-end="url(#arw)"/>
+  <line x1="600" y1="248" x2="600" y2="210" stroke="#64748b" stroke-width="2" marker-end="url(#arw)"/>
+  <text x="618" y="234" class="flow">REST / JSON (fetch)</text>
+
+  <!-- ===================== 2. BACKEND API ===================== -->
+  <rect x="30" y="250" width="1100" height="118" rx="12" fill="#ecfeff" stroke="#a5f3fc"/>
+  <text x="50" y="275" class="lyr" fill="#0e7490">② BACKEND API · server.js (Express)</text>
+  <g class="pill" fill="#155e75">
+    <rect x="55" y="288" width="150" height="58" rx="8" fill="#fff" stroke="#a5f3fc"/>
+    <text x="130" y="312" text-anchor="middle">GET /api/overview</text>
+    <text x="130" y="332" text-anchor="middle" class="box-s">비용+환율+분해</text>
+
+    <rect x="217" y="288" width="150" height="58" rx="8" fill="#fff" stroke="#a5f3fc"/>
+    <text x="292" y="312" text-anchor="middle">GET /api/idle</text>
+    <text x="292" y="332" text-anchor="middle" class="box-s">유휴 리소스</text>
+
+    <rect x="379" y="288" width="150" height="58" rx="8" fill="#fff" stroke="#a5f3fc"/>
+    <text x="454" y="312" text-anchor="middle">POST /api/ask</text>
+    <text x="454" y="332" text-anchor="middle" class="box-s">AI 에이전트</text>
+
+    <rect x="541" y="288" width="150" height="58" rx="8" fill="#fff" stroke="#a5f3fc"/>
+    <text x="616" y="312" text-anchor="middle">POST /api/action</text>
+    <text x="616" y="332" text-anchor="middle" class="box-s">실제 조치 실행</text>
+
+    <rect x="703" y="288" width="150" height="58" rx="8" fill="#fff" stroke="#a5f3fc"/>
+    <text x="778" y="312" text-anchor="middle">GET /api/alerts</text>
+    <text x="778" y="332" text-anchor="middle" class="box-s">능동 점검</text>
+
+    <rect x="880" y="288" width="225" height="58" rx="8" fill="#cffafe" stroke="#67e8f9"/>
+    <text x="992" y="311" text-anchor="middle" font-weight="700" fill="#0e7490">buildSnapshot()</text>
+    <text x="992" y="331" text-anchor="middle" class="box-s">요청당 실데이터 1회 수집 → 공용</text>
+  </g>
+
+  <!-- arrow backend -> lib -->
+  <line x1="300" y1="368" x2="300" y2="405" stroke="#64748b" stroke-width="2" marker-end="url(#arw)"/>
+  <line x1="860" y1="368" x2="860" y2="405" stroke="#64748b" stroke-width="2" marker-end="url(#arw)"/>
+
+  <!-- ===================== 3. CORE MODULES ===================== -->
+  <rect x="30" y="408" width="1100" height="132" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="50" y="433" class="lyr" fill="#15803d">③ CORE LOGIC · lib/</text>
+  <g>
+    <rect x="55" y="446" width="165" height="80" rx="8" fill="#fff" stroke="#bbf7d0"/>
+    <text x="70" y="469" class="box-t">aws.js</text>
+    <text x="70" y="489" class="box-s">getOverview · getIdle</text>
+    <text x="70" y="505" class="box-s">stopInstance</text>
+    <text x="70" y="520" class="box-s">실AWS ↔ 데모 스위치</text>
+
+    <rect x="232" y="446" width="165" height="80" rx="8" fill="#fff" stroke="#bbf7d0"/>
+    <text x="247" y="469" class="box-t">fx.js</text>
+    <text x="247" y="489" class="box-s">getUsdKrw()</text>
+    <text x="247" y="505" class="box-s">원/달러 환율 조회</text>
+
+    <rect x="409" y="446" width="165" height="80" rx="8" fill="#fff" stroke="#bbf7d0"/>
+    <text x="424" y="469" class="box-t">analyze.js</text>
+    <text x="424" y="489" class="box-s">decomposeCost</text>
+    <text x="424" y="505" class="box-s">Change()</text>
+    <text x="424" y="520" class="box-s">환율효과 vs 사용량효과</text>
+
+    <rect x="586" y="446" width="165" height="80" rx="8" fill="#fff" stroke="#bbf7d0"/>
+    <text x="601" y="469" class="box-t">alerts.js</text>
+    <text x="601" y="489" class="box-s">detectAlerts()</text>
+    <text x="601" y="505" class="box-s">이상탐지 · 심각도</text>
+
+    <rect x="763" y="446" width="165" height="80" rx="8" fill="#faf5ff" stroke="#e9d5ff"/>
+    <text x="778" y="469" class="box-t" fill="#7c3aed">ai.js</text>
+    <text x="778" y="489" class="box-s">Claude 에이전트 루프</text>
+    <text x="778" y="505" class="box-s">(tool-use, max 6 step)</text>
+
+    <rect x="940" y="446" width="165" height="80" rx="8" fill="#faf5ff" stroke="#e9d5ff"/>
+    <text x="955" y="469" class="box-t" fill="#7c3aed">tools.js</text>
+    <text x="955" y="489" class="box-s">6 도구 정의 + 실행기</text>
+    <text x="955" y="505" class="box-s">snapshot 조회/가공</text>
+  </g>
+
+  <!-- ai.js <-> tools.js internal link -->
+  <line x1="845" y1="486" x2="938" y2="486" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arwAi)"/>
+
+  <!-- ===================== 4. AI AGENT TOOLS ===================== -->
+  <rect x="700" y="560" width="430" height="150" rx="12" fill="#faf5ff" stroke="#e9d5ff"/>
+  <text x="720" y="585" class="lyr" fill="#7c3aed">④ CLAUDE TOOL-USE 도구 (ai.js ↔ tools.js)</text>
+  <g class="box-s" fill="#6b21a8">
+    <rect x="715" y="596" width="130" height="30" rx="6" fill="#fff" stroke="#e9d5ff"/><text x="780" y="615" text-anchor="middle">get_cost_overview</text>
+    <rect x="855" y="596" width="130" height="30" rx="6" fill="#fff" stroke="#e9d5ff"/><text x="920" y="615" text-anchor="middle">list_idle_resources</text>
+    <rect x="995" y="596" width="120" height="30" rx="6" fill="#fff" stroke="#e9d5ff"/><text x="1055" y="615" text-anchor="middle">get_alerts</text>
+    <rect x="715" y="632" width="130" height="30" rx="6" fill="#fff" stroke="#e9d5ff"/><text x="780" y="651" text-anchor="middle">decompose_cost</text>
+    <rect x="855" y="632" width="130" height="30" rx="6" fill="#fff" stroke="#e9d5ff"/><text x="920" y="651" text-anchor="middle">simulate_fx</text>
+    <rect x="995" y="632" width="120" height="30" rx="6" fill="#ede9fe" stroke="#c4b5fd"/><text x="1055" y="651" text-anchor="middle" font-weight="700">propose_plan ★</text>
+  </g>
+  <text x="720" y="685" class="box-s" fill="#6b21a8">read 도구 5종 → 에이전트가 자율 호출 / ★ 종료 도구 → 실행안 구조화 반환</text>
+  <text x="720" y="701" class="box-s" fill="#6b21a8">실제 실행은 사용자가 /api/action 승인 시에만 발생</text>
+
+  <!-- arrows lib -> external -->
+  <line x1="130" y1="526" x2="130" y2="762" stroke="#64748b" stroke-width="2" marker-end="url(#arw)"/>
+  <line x1="310" y1="526" x2="310" y2="762" stroke="#64748b" stroke-width="2" marker-end="url(#arw)"/>
+  <line x1="820" y1="526" x2="820" y2="558" stroke="#7c3aed" stroke-width="2" marker-end="url(#arwAi)"/>
+
+  <!-- ===================== 5. EXTERNAL ===================== -->
+  <rect x="30" y="745" width="640" height="130" rx="12" fill="#fff7ed" stroke="#fed7aa"/>
+  <text x="50" y="770" class="lyr" fill="#c2410c">⑤ EXTERNAL SERVICES (실데이터)</text>
+
+  <rect x="55" y="782" width="230" height="78" rx="8" fill="#fff" stroke="#fed7aa"/>
+  <text x="70" y="805" class="box-t">AWS (AWS SDK)</text>
+  <text x="70" y="825" class="box-s">Cost Explorer · EC2 ·</text>
+  <text x="70" y="841" class="box-s">CloudWatch · EBS / EIP</text>
+
+  <rect x="300" y="782" width="150" height="78" rx="8" fill="#fff" stroke="#fed7aa"/>
+  <text x="315" y="805" class="box-t">환율 API</text>
+  <text x="315" y="825" class="box-s">USD/KRW</text>
+  <text x="315" y="841" class="box-s">실시간 환율</text>
+
+  <rect x="465" y="782" width="185" height="78" rx="8" fill="#fef2f2" stroke="#fecaca"/>
+  <text x="480" y="805" class="box-t" fill="#b91c1c">demo.js (폴백)</text>
+  <text x="480" y="825" class="box-s">키·이력 없을 때</text>
+  <text x="480" y="841" class="box-s">대표 데모 데이터</text>
+
+  <!-- Anthropic -->
+  <rect x="700" y="745" width="430" height="130" rx="12" fill="#f5f3ff" stroke="#ddd6fe"/>
+  <text x="720" y="770" class="lyr" fill="#7c3aed">Anthropic Claude API</text>
+  <rect x="720" y="785" width="390" height="75" rx="8" fill="#fff" stroke="#ddd6fe"/>
+  <text x="735" y="810" class="box-t" fill="#7c3aed">Messages API · Tool Use</text>
+  <text x="735" y="831" class="box-s">모델: claude-opus-5 (env로 변경 가능)</text>
+  <text x="735" y="848" class="box-s">키 없으면 규칙 기반 fallback 응답으로 데모 지속</text>
+
+  <text x="40" y="892" class="box-s" fill="#94a3b8">데이터 흐름:  사용자 요청 → Express API → buildSnapshot(AWS·환율 수집) → Claude 에이전트가 도구 호출·추론 → 실행안 제안 → 사용자 승인 → 실제 AWS 조치</text>
+</svg>
