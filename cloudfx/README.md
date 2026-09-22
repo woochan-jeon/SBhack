@@ -1,3 +1,4 @@
+<img width="2320" height="1800" alt="cloudfx_architecture" src="https://github.com/user-attachments/assets/f76e13de-4c10-4f31-8898-d5791871e614" />
 # CloudFX — 환율까지 아는 AI 클라우드 비용 관리 코파일럿
 
 글로벌 FinOps 툴은 달러권 대기업용이라 **환율을 모른다**. CloudFX는 환율에 시달리는
